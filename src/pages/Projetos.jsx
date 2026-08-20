@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 
 const STATUS_LABEL = {
@@ -24,6 +25,7 @@ const emptyForm = {
 const STATUS_POS_DISCOVERY = ['discovery', 'pausado']
 
 export default function Projetos() {
+  const navigate = useNavigate()
   const [projetos, setProjetos] = useState([])
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -136,7 +138,7 @@ export default function Projetos() {
             </thead>
             <tbody>
               {projetos.map((p) => (
-                <tr key={p.id} onClick={() => openEdit(p)}>
+                <tr key={p.id} onClick={() => navigate(`/projetos/${p.id}`)}>
                   <td><code>{p.codigo}</code></td>
                   <td>{p.nome}</td>
                   <td>{p.sh_clientes?.nome || '—'}</td>
@@ -144,6 +146,15 @@ export default function Projetos() {
                   <td>{p.prioridade}</td>
                   <td>{p.prazo ? new Date(p.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                   <td>
+                    <button
+                      className="btn-icon-danger"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEdit(p)
+                      }}
+                    >
+                      Editar
+                    </button>
                     <button
                       className="btn-icon-danger"
                       onClick={(e) => {

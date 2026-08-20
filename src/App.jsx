@@ -4,6 +4,8 @@ import Login from './pages/Login'
 import Layout from './pages/Layout'
 import Clientes from './pages/Clientes'
 import Projetos from './pages/Projetos'
+import ProjetoDetalhe from './pages/ProjetoDetalhe'
+import Discovery from './pages/Discovery'
 
 function Gate({ children }) {
   const { session } = useAuth()
@@ -22,6 +24,8 @@ function App() {
               <Route path="/" element={<Navigate to="/clientes" replace />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/projetos" element={<Projetos />} />
+              <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
+              <Route path="/projetos/:id/discovery" element={<Discovery />} />
             </Route>
           </Routes>
         </BrowserRouter>
