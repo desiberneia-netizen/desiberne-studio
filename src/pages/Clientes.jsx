@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sb } from '../lib/supabaseClient'
+import { useAuth } from '../lib/AuthContext'
 
 const emptyForm = {
   id: null,
@@ -15,6 +16,7 @@ const emptyForm = {
 }
 
 export default function Clientes() {
+  const { isAdminOuGestor } = useAuth()
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -97,7 +99,7 @@ export default function Clientes() {
           <h1>Clientes</h1>
           <p>Quem contrata desenvolvimento de sistema com a Desiberne</p>
         </div>
-        <button className="btn-primary" onClick={openNew}>+ Novo Cliente</button>
+        {isAdminOuGestor && <button className="btn-primary" onClick={openNew}>+ Novo Cliente</button>}
       </div>
 
       {error && <div className="banner-error">{error}</div>}
@@ -126,15 +128,17 @@ export default function Clientes() {
                   <td>{c.segmento || '—'}</td>
                   <td>{c.responsavel || '—'}</td>
                   <td>
-                    <button
-                      className="btn-icon-danger"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(c.id)
-                      }}
-                    >
-                      Excluir
-                    </button>
+                    {isAdminOuGestor && (
+                      <button
+                        className="btn-icon-danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(c.id)
+                        }}
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -195,15 +199,17 @@ export default function Clientes() {
                 <input type="email" value={form.contatoEmail} onChange={(e) => setForm({ ...form, contatoEmail: e.target.value })} />
               </div>
               <div className="modal-footer">
-                {form.id && (
+                {form.id && isAdminOuGestor && (
                   <button type="button" className="btn-danger" onClick={() => { handleDelete(form.id); setModalOpen(false) }}>
                     Excluir
                   </button>
                 )}
-                <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </button>
+                <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>{isAdminOuGestor ? 'Cancelar' : 'Fechar'}</button>
+                {isAdminOuGestor && (
+                  <button type="submit" className="btn-primary" disabled={saving}>
+                    {saving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                )}
               </div>
             </form>
           </div>

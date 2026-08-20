@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
+import { useAuth } from '../lib/AuthContext'
 
 const STATUS_LABEL = {
   discovery: 'Discovery',
@@ -25,6 +26,7 @@ const emptyForm = {
 const STATUS_POS_DISCOVERY = ['discovery', 'pausado']
 
 export default function Projetos() {
+  const { isAdminOuGestor } = useAuth()
   const navigate = useNavigate()
   const [projetos, setProjetos] = useState([])
   const [clientes, setClientes] = useState([])
@@ -108,9 +110,11 @@ export default function Projetos() {
           <h1>Projetos</h1>
           <p>Projetos de desenvolvimento em andamento</p>
         </div>
-        <button className="btn-primary" onClick={openNew} disabled={clientes.length === 0}>
-          + Novo Projeto
-        </button>
+        {isAdminOuGestor && (
+          <button className="btn-primary" onClick={openNew} disabled={clientes.length === 0}>
+            + Novo Projeto
+          </button>
+        )}
       </div>
 
       {clientes.length === 0 && !loading && (
@@ -146,24 +150,28 @@ export default function Projetos() {
                   <td>{p.prioridade}</td>
                   <td>{p.prazo ? new Date(p.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                   <td>
-                    <button
-                      className="btn-icon-danger"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openEdit(p)
-                      }}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="btn-icon-danger"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(p.id)
-                      }}
-                    >
-                      Excluir
-                    </button>
+                    {isAdminOuGestor && (
+                      <>
+                        <button
+                          className="btn-icon-danger"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEdit(p)
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="btn-icon-danger"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(p.id)
+                          }}
+                        >
+                          Excluir
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

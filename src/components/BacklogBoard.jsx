@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sb } from '../lib/supabaseClient'
+import { useAuth } from '../lib/AuthContext'
 
 const FASES = [
   { key: 'mvp', label: 'MVP' },
@@ -9,6 +10,8 @@ const FASES = [
 ]
 
 export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
+  const { isAdminOuGestor, papel } = useAuth()
+  const podeMover = isAdminOuGestor || papel === 'sh_operacional'
   const [itens, setItens] = useState([])
   const [loading, setLoading] = useState(true)
   const [novoTitulo, setNovoTitulo] = useState({})
@@ -85,7 +88,7 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
 
   return (
     <div>
-      {itens.length === 0 && discoveryConfirmado && (
+      {itens.length === 0 && discoveryConfirmado && isAdminOuGestor && (
         <div className="banner-hint">
           <span>Nenhum item no backlog ainda.</span>
           <button className="btn-ghost" onClick={seedFromDiscovery} disabled={seeding}>
@@ -107,28 +110,30 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
               {itensFase.map((item) => (
                 <div key={item.id} className={'backlog-card' + (item.status === 'concluido' ? ' done' : '')}>
                   <label className="backlog-check">
-                    <input type="checkbox" checked={item.status === 'concluido'} onChange={() => toggleStatus(item)} />
+                    <input type="checkbox" checked={item.status === 'concluido'} disabled={!podeMover} onChange={() => toggleStatus(item)} />
                     <span>{item.titulo}</span>
                   </label>
                   <div className="backlog-card-actions">
-                    <select value={item.fase} onChange={(e) => moveFase(item, e.target.value)}>
+                    <select value={item.fase} disabled={!podeMover} onChange={(e) => moveFase(item, e.target.value)}>
                       {FASES.map((f2) => (
                         <option key={f2.key} value={f2.key}>{f2.label}</option>
                       ))}
                     </select>
-                    <button onClick={() => removeItem(item.id)}>×</button>
+                    {isAdminOuGestor && <button onClick={() => removeItem(item.id)}>×</button>}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="backlog-add">
-              <input
-                placeholder="+ novo item"
-                value={novoTitulo[f.key] || ''}
-                onChange={(e) => setNovoTitulo({ ...novoTitulo, [f.key]: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && addItem(f.key)}
-              />
-            </div>
+            {isAdminOuGestor && (
+              <div className="backlog-add">
+                <input
+                  placeholder="+ novo item"
+                  value={novoTitulo[f.key] || ''}
+                  onChange={(e) => setNovoTitulo({ ...novoTitulo, [f.key]: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && addItem(f.key)}
+                />
+              </div>
+            )}
           </div>
         )
       })}

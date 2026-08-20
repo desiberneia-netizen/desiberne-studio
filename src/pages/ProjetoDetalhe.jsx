@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
+import { useAuth } from '../lib/AuthContext'
 import BacklogBoard from '../components/BacklogBoard'
 
 const DOC_LABELS = {
@@ -21,6 +22,7 @@ const STATUS_LABEL = {
 }
 
 export default function ProjetoDetalhe() {
+  const { isAdminOuGestor } = useAuth()
   const { id } = useParams()
   const [projeto, setProjeto] = useState(null)
   const [documentos, setDocumentos] = useState([])
@@ -87,14 +89,16 @@ export default function ProjetoDetalhe() {
             <div><span className="resumo-label">Prazo</span><span>{projeto.prazo ? new Date(projeto.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</span></div>
             <div><span className="resumo-label">Discovery</span><span>{projeto.discovery_confirmado ? `confirmado (v${ultimaVersao || 1})` : 'não confirmado'}</span></div>
           </div>
-          {!projeto.discovery_confirmado ? (
-            <Link className="btn-primary" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
-              Iniciar Discovery
-            </Link>
-          ) : (
-            <Link className="btn-ghost" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
-              Revisar Discovery (cria nova versão)
-            </Link>
+          {isAdminOuGestor && (
+            !projeto.discovery_confirmado ? (
+              <Link className="btn-primary" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
+                Iniciar Discovery
+              </Link>
+            ) : (
+              <Link className="btn-ghost" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
+                Revisar Discovery (cria nova versão)
+              </Link>
+            )
           )}
         </div>
       )}

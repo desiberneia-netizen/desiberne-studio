@@ -51,7 +51,7 @@ function toggleInArray(arr, value) {
 export default function Discovery() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { session } = useAuth()
+  const { session, isAdminOuGestor } = useAuth()
 
   const [projeto, setProjeto] = useState(null)
   const [cliente, setCliente] = useState(null)
@@ -159,6 +159,7 @@ export default function Discovery() {
 
   if (loading) return <div className="empty-state">Carregando...</div>
   if (error && !projeto) return <div className="banner-error">{error}</div>
+  if (!isAdminOuGestor) return <div className="banner-error">Você não tem permissão pra rodar o Discovery. Fale com um admin.</div>
 
   const isReview = step === STEP_TITLES.length - 1
 
