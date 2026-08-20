@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
+import BacklogBoard from '../components/BacklogBoard'
 
 const DOC_LABELS = {
   documento_tecnico: 'Documento Técnico',
@@ -74,6 +75,7 @@ export default function ProjetoDetalhe() {
       <div className="tabs-row">
         <button className={'tab-btn' + (aba === 'resumo' ? ' active' : '')} onClick={() => setAba('resumo')}>Resumo</button>
         <button className={'tab-btn' + (aba === 'documentos' ? ' active' : '')} onClick={() => setAba('documentos')}>Documentos</button>
+        <button className={'tab-btn' + (aba === 'backlog' ? ' active' : '')} onClick={() => setAba('backlog')}>Backlog</button>
         <button className={'tab-btn' + (aba === 'timeline' ? ' active' : '')} onClick={() => setAba('timeline')}>Timeline</button>
       </div>
 
@@ -124,6 +126,10 @@ export default function ProjetoDetalhe() {
             </div>
           )}
         </div>
+      )}
+
+      {aba === 'backlog' && (
+        <BacklogBoard projetoId={id} discoveryConfirmado={projeto.discovery_confirmado} />
       )}
 
       {aba === 'timeline' && (
