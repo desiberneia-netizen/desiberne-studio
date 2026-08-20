@@ -44,6 +44,9 @@ export default function Layout() {
           <NavLink to="/projetos" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
             Projetos
           </NavLink>
+          <NavLink to="/ideias" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
+            Banco de Ideias
+          </NavLink>
           {isAdmin && (
             <NavLink to="/usuarios" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
               Usuários
