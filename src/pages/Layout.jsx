@@ -21,6 +21,9 @@ export default function Layout() {
       </header>
       <div className="studio-body">
         <nav className="studio-sidebar">
+          <NavLink to="/dashboard" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
+            Dashboard
+          </NavLink>
           <NavLink to="/clientes" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
             Clientes
           </NavLink>
