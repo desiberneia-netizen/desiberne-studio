@@ -24,7 +24,9 @@ export default function Layout() {
           <NavLink to="/clientes" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
             Clientes
           </NavLink>
-          <span className="studio-nav-item disabled">Projetos <em>em breve</em></span>
+          <NavLink to="/projetos" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
+            Projetos
+          </NavLink>
         </nav>
         <main className="studio-main">
           <Outlet />
