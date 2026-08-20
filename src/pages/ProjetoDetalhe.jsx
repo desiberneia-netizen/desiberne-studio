@@ -31,6 +31,8 @@ export default function ProjetoDetalhe() {
   const [aba, setAba] = useState('resumo')
   const [docAtivo, setDocAtivo] = useState('prompt_claude_code')
   const [copiado, setCopiado] = useState(false)
+  const [gerandoIA, setGerandoIA] = useState(false)
+  const [erroIA, setErroIA] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -54,6 +56,38 @@ export default function ProjetoDetalhe() {
   const ultimaVersao = documentos[0]?.versao
   const docsUltimaVersao = documentos.filter((d) => d.versao === ultimaVersao)
   const docSelecionado = docsUltimaVersao.find((d) => d.tipo === docAtivo)
+
+  async function gerarComIA() {
+    if (!docSelecionado) return
+    setGerandoIA(true)
+    setErroIA('')
+    try {
+      const { data: snapshot, error: errSnap } = await sb
+        .from('sh_discovery_snapshots')
+        .select('*')
+        .eq('id', docSelecionado.discovery_snapshot_id)
+        .single()
+      if (errSnap) throw errSnap
+
+      const { data: sessionData } = await sb.auth.getSession()
+      const resp = await fetch('/api/gerar-documento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({ tipo: docAtivo, cliente: projeto.sh_clientes, projeto, snapshot }),
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao gerar com IA')
+
+      const { error: errUpdate } = await sb.from('sh_documentos_gerados').update({ conteudo: result.conteudo }).eq('id', docSelecionado.id)
+      if (errUpdate) throw errUpdate
+
+      setDocumentos(documentos.map((d) => (d.id === docSelecionado.id ? { ...d, conteudo: result.conteudo } : d)))
+    } catch (err) {
+      setErroIA(err.message)
+    } finally {
+      setGerandoIA(false)
+    }
+  }
 
   function copiarPrompt() {
     const doc = docsUltimaVersao.find((d) => d.tipo === 'prompt_claude_code')
@@ -120,12 +154,20 @@ export default function ProjetoDetalhe() {
                     {label}
                   </button>
                 ))}
-                {docAtivo === 'prompt_claude_code' && (
-                  <button className="btn-ghost" style={{ marginLeft: 'auto' }} onClick={copiarPrompt}>
-                    {copiado ? 'Copiado!' : 'Copiar prompt'}
-                  </button>
-                )}
+                <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                  {isAdminOuGestor && (
+                    <button className="btn-ghost" onClick={gerarComIA} disabled={gerandoIA}>
+                      {gerandoIA ? 'Gerando com IA...' : '✨ Gerar com IA'}
+                    </button>
+                  )}
+                  {docAtivo === 'prompt_claude_code' && (
+                    <button className="btn-ghost" onClick={copiarPrompt}>
+                      {copiado ? 'Copiado!' : 'Copiar prompt'}
+                    </button>
+                  )}
+                </span>
               </div>
+              {erroIA && <div className="banner-error" style={{ margin: '0 16px 16px' }}>{erroIA}</div>}
               <pre className="doc-content">{docSelecionado?.conteudo || '—'}</pre>
             </div>
           )}
