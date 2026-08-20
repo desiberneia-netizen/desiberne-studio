@@ -350,6 +350,22 @@ button {
 }
 
 /* ===== IDEIAS ===== */
+.link-search {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  width: 280px;
+  font-family: inherit;
+  margin-bottom: 14px;
+  display: block;
+}
+.link-search:focus {
+  border-color: var(--purple);
+}
 .link-filter-btns {
   display: flex;
   gap: 8px;

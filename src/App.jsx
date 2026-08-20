@@ -10,6 +10,7 @@ import Discovery from './pages/Discovery'
 import Usuarios from './pages/Usuarios'
 import Ideias from './pages/Ideias'
 import Templates from './pages/Templates'
+import Componentes from './pages/Componentes'
 
 function Gate({ children }) {
   const { session } = useAuth()
@@ -34,6 +35,7 @@ function App() {
               <Route path="/usuarios" element={<Usuarios />} />
               <Route path="/ideias" element={<Ideias />} />
               <Route path="/templates" element={<Templates />} />
+              <Route path="/componentes" element={<Componentes />} />
             </Route>
           </Routes>
         </BrowserRouter>
