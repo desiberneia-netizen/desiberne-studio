@@ -1,23 +1,30 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './lib/AuthContext'
+import Login from './pages/Login'
+import Layout from './pages/Layout'
+import Clientes from './pages/Clientes'
+
+function Gate({ children }) {
+  const { session } = useAuth()
+  if (session === undefined) return <div className="studio-loading">Carregando...</div>
+  if (session === null) return <Login />
+  return children
+}
+
 function App() {
   return (
-    <div className="studio-shell">
-      <header className="studio-topbar">
-        <div className="studio-logo">
-          <img src="https://i.imgur.com/rrQxwkl.png" alt="Desiberne" />
-          <span>Desiberne <b>Studio</b></span>
-        </div>
-        <a className="studio-back" href="https://desiberne-crm.vercel.app" target="_blank" rel="noreferrer">
-          Voltar ao CRM
-        </a>
-      </header>
-      <main className="studio-main">
-        <div className="studio-empty">
-          <div className="studio-empty-icon">🏗️</div>
-          <h1>Fase 1 em construção</h1>
-          <p>Clientes, Projetos e o Wizard de Discovery ainda vão entrar aqui.</p>
-        </div>
-      </main>
-    </div>
+    <AuthProvider>
+      <Gate>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/clientes" replace />} />
+              <Route path="/clientes" element={<Clientes />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </Gate>
+    </AuthProvider>
   )
 }
 
