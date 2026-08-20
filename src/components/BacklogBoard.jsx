@@ -13,6 +13,7 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
   const [loading, setLoading] = useState(true)
   const [novoTitulo, setNovoTitulo] = useState({})
   const [seeding, setSeeding] = useState(false)
+  const [seedAviso, setSeedAviso] = useState('')
 
   async function load() {
     setLoading(true)
@@ -27,6 +28,7 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
 
   async function seedFromDiscovery() {
     setSeeding(true)
+    setSeedAviso('')
     const { data: snapshot } = await sb
       .from('sh_discovery_snapshots')
       .select('etapa4_funcionalidades')
@@ -46,6 +48,10 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
     }))
     if (rows.length > 0) {
       await sb.from('sh_backlog_itens').insert(rows)
+    } else {
+      setSeeding(false)
+      setSeedAviso('Nenhuma funcionalidade foi marcada na etapa 4 do Discovery — adicione itens manualmente abaixo, ou revise o Discovery pra marcar funcionalidades.')
+      return
     }
     setSeeding(false)
     load()
@@ -77,23 +83,18 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
 
   if (loading) return <div className="empty-state">Carregando...</div>
 
-  if (itens.length === 0) {
-    return (
-      <div className="empty-state">
-        Nenhum item no backlog ainda.
-        {discoveryConfirmado && (
-          <div style={{ marginTop: 12 }}>
-            <button className="btn-ghost" onClick={seedFromDiscovery} disabled={seeding}>
-              {seeding ? 'Gerando...' : 'Gerar itens a partir das funcionalidades do Discovery'}
-            </button>
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
-    <div className="backlog-board">
+    <div>
+      {itens.length === 0 && discoveryConfirmado && (
+        <div className="banner-hint">
+          <span>Nenhum item no backlog ainda.</span>
+          <button className="btn-ghost" onClick={seedFromDiscovery} disabled={seeding}>
+            {seeding ? 'Gerando...' : 'Gerar itens a partir das funcionalidades do Discovery'}
+          </button>
+        </div>
+      )}
+      {seedAviso && <div className="banner-error">{seedAviso}</div>}
+      <div className="backlog-board">
       {FASES.map((f) => {
         const itensFase = itens.filter((i) => i.fase === f.key)
         return (
@@ -131,6 +132,7 @@ export default function BacklogBoard({ projetoId, discoveryConfirmado }) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }
