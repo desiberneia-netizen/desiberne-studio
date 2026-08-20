@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 import { useAuth } from '../lib/AuthContext'
 import { gerarTodosDocumentos } from '../lib/discoveryDocs'
+import { FUNCIONALIDADES_CATALOGO } from '../lib/catalogos'
 
 const STEP_TITLES = [
   'Conhecendo a empresa',
@@ -14,13 +15,6 @@ const STEP_TITLES = [
   'Identidade visual',
   'Requisitos especiais',
   'Revisão final',
-]
-
-const FUNCIONALIDADES_CATALOGO = [
-  'Dashboard', 'Agenda', 'Calendário', 'Clientes', 'Leads', 'Funil', 'Financeiro',
-  'Estoque', 'Produtos', 'Ordens de Serviço', 'Contratos', 'Tarefas', 'Equipe',
-  'Permissões', 'Notificações', 'Relatórios', 'WhatsApp', 'E-mail', 'API',
-  'Documentos', 'Assinaturas', 'Uploads', 'Chat interno', 'IA', 'Automações',
 ]
 
 const INTEGRACOES_CATALOGO = ['WhatsApp', 'Google', 'Outlook', 'ERP', 'API própria', 'Gateway de pagamento', 'OpenAI', 'Supabase']
@@ -81,8 +75,25 @@ export default function Discovery() {
       if (draft) {
         try {
           setData({ ...emptyDiscovery(), ...JSON.parse(draft) })
+          setLoading(false)
+          return
         } catch {
           // draft corrompido, ignora
+        }
+      }
+
+      if (proj.template_origem_id) {
+        const { data: template } = await sb.from('sh_templates').select('*').eq('id', proj.template_origem_id).single()
+        if (template) {
+          const base = emptyDiscovery()
+          const prefill = {
+            ...base,
+            etapa1_empresa: { ...base.etapa1_empresa, segmento: template.segmento || '' },
+            etapa4_funcionalidades: { ...base.etapa4_funcionalidades, padrao: template.funcionalidades_padrao?.padrao || [] },
+            etapa7_identidade: { ...base.etapa7_identidade, ...(template.discovery_padrao?.etapa7_identidade || {}) },
+          }
+          setData(prefill)
+          localStorage.setItem(draftKey(id), JSON.stringify(prefill))
         }
       }
       setLoading(false)

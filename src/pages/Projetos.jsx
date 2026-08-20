@@ -15,6 +15,7 @@ const STATUS_LABEL = {
 const emptyForm = {
   id: null,
   cliente_id: '',
+  template_origem_id: '',
   nome: '',
   responsavel: '',
   prazo: '',
@@ -30,6 +31,7 @@ export default function Projetos() {
   const navigate = useNavigate()
   const [projetos, setProjetos] = useState([])
   const [clientes, setClientes] = useState([])
+  const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -38,14 +40,16 @@ export default function Projetos() {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: proj, error: errProj }, { data: cli, error: errCli }] = await Promise.all([
+    const [{ data: proj, error: errProj }, { data: cli, error: errCli }, { data: tpl }] = await Promise.all([
       sb.from('sh_projetos').select('*, sh_clientes(nome)').order('created_at', { ascending: false }),
       sb.from('sh_clientes').select('id, nome').order('nome'),
+      sb.from('sh_templates').select('id, nome').order('nome'),
     ])
     if (errProj) setError(errProj.message)
     else if (errCli) setError(errCli.message)
     setProjetos(proj || [])
     setClientes(cli || [])
+    setTemplates(tpl || [])
     setLoading(false)
   }
 
@@ -84,6 +88,7 @@ export default function Projetos() {
       prioridade: form.prioridade,
       status: form.status,
     }
+    if (!form.id) payload.template_origem_id = form.template_origem_id || null
     const { error } = form.id
       ? await sb.from('sh_projetos').update(payload).eq('id', form.id)
       : await sb.from('sh_projetos').insert(payload)
@@ -197,6 +202,18 @@ export default function Projetos() {
                   ))}
                 </select>
               </div>
+              {!form.id && templates.length > 0 && (
+                <div className="form-row">
+                  <label>Template (opcional)</label>
+                  <select value={form.template_origem_id} onChange={(e) => setForm({ ...form, template_origem_id: e.target.value })}>
+                    <option value="">Começar do zero</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nome}</option>
+                    ))}
+                  </select>
+                  <span className="form-hint">Pré-preenche o Wizard de Discovery com o padrão do template.</span>
+                </div>
+              )}
               <div className="form-row">
                 <label>Nome do projeto *</label>
                 <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
