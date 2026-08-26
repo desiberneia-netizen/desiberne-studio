@@ -123,17 +123,34 @@ export default function SiteBriefing() {
     }
   }
 
+  function slugificarNomeArquivo(nome) {
+    const pontoIdx = nome.lastIndexOf('.')
+    const base = pontoIdx > -1 ? nome.slice(0, pontoIdx) : nome
+    const ext = pontoIdx > -1 ? nome.slice(pontoIdx + 1).toLowerCase().replace(/[^a-z0-9]/g, '') : ''
+    const baseLimpa = base
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase()
+      .slice(0, 60) || 'foto'
+    return ext ? `${baseLimpa}.${ext}` : baseLimpa
+  }
+
   async function handleUploadFoto(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
     setUploading(true)
     setError('')
     try {
-      const path = `${id}/${Date.now()}_${file.name}`
-      const { error: errUpload } = await sb.storage.from('briefing-sites').upload(path, file)
-      if (errUpload) throw errUpload
-      const { data: pub } = sb.storage.from('briefing-sites').getPublicUrl(path)
-      updateStep('etapa2_midia', { fotos: [...data.etapa2_midia.fotos, { nome: file.name, url: pub.publicUrl }] })
+      const novasFotos = []
+      for (const file of files) {
+        const path = `${id}/${Date.now()}_${slugificarNomeArquivo(file.name)}`
+        const { error: errUpload } = await sb.storage.from('briefing-sites').upload(path, file)
+        if (errUpload) throw errUpload
+        const { data: pub } = sb.storage.from('briefing-sites').getPublicUrl(path)
+        novasFotos.push({ nome: file.name, url: pub.publicUrl })
+      }
+      updateStep('etapa2_midia', { fotos: [...data.etapa2_midia.fotos, ...novasFotos] })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -296,7 +313,7 @@ export default function SiteBriefing() {
                 </div>
               ))}
             </div>
-            <input type="file" accept="image/*" onChange={handleUploadFoto} disabled={uploading} />
+            <input type="file" accept="image/*" multiple onChange={handleUploadFoto} disabled={uploading} />
             {uploading && <span className="form-hint">Enviando...</span>}
             <div className="section-divider">Redes sociais</div>
             <div className="fluxo-list">
