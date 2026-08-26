@@ -34,6 +34,7 @@ export default function SiteBriefing() {
   const [confirming, setConfirming] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [linkExtracao, setLinkExtracao] = useState('')
+  const [textoColado, setTextoColado] = useState('')
   const [extraindo, setExtraindo] = useState(false)
   const [erroExtracao, setErroExtracao] = useState('')
 
@@ -86,6 +87,15 @@ export default function SiteBriefing() {
 
   async function handleExtrairComIA() {
     if (!linkExtracao.trim()) return
+    await extrairComIA({ url: linkExtracao.trim() })
+  }
+
+  async function handleOrganizarTexto() {
+    if (!textoColado.trim()) return
+    await extrairComIA({ texto: textoColado.trim() })
+  }
+
+  async function extrairComIA(payload) {
     setExtraindo(true)
     setErroExtracao('')
     try {
@@ -93,7 +103,7 @@ export default function SiteBriefing() {
       const resp = await fetch('/api/extrair-negocio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ url: linkExtracao.trim() }),
+        body: JSON.stringify(payload),
       })
       const result = await resp.json()
       if (!resp.ok) throw new Error(result.error || 'Erro ao extrair dados')
@@ -214,11 +224,24 @@ export default function SiteBriefing() {
         {step === 0 && (
           <div>
             <div className="form-row">
-              <label>Extrair de um link (site ou rede social)</label>
+              <label>Colar texto do Instagram/Facebook (bio, descrição, contato)</label>
+              <textarea
+                rows={4}
+                placeholder="Cola aqui o texto que aparece no perfil: bio, descrição, telefone, endereço se tiver..."
+                value={textoColado}
+                onChange={(e) => setTextoColado(e.target.value)}
+              />
+              <button type="button" className="btn-ghost" style={{ marginTop: 8, alignSelf: 'flex-start' }} onClick={handleOrganizarTexto} disabled={extraindo || !textoColado.trim()}>
+                {extraindo ? 'Organizando...' : '✨ Organizar com IA'}
+              </button>
+              <span className="form-hint">Caminho principal pra quem não tem site — funciona sempre, porque é você que copia o texto.</span>
+            </div>
+            <div className="form-row" style={{ marginTop: 8 }}>
+              <label>Ou extrair de um site próprio (se tiver)</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   style={{ flex: 1 }}
-                  placeholder="https://site-do-cliente.com.br ou instagram.com/cliente"
+                  placeholder="https://site-do-cliente.com.br"
                   value={linkExtracao}
                   onChange={(e) => setLinkExtracao(e.target.value)}
                 />
@@ -226,9 +249,9 @@ export default function SiteBriefing() {
                   {extraindo ? 'Extraindo...' : '✨ Extrair com IA'}
                 </button>
               </div>
-              {erroExtracao && <span className="form-hint" style={{ color: 'var(--danger)' }}>{erroExtracao}</span>}
-              <span className="form-hint">Não funciona com link do Google Maps (página em JavaScript) — usa site ou rede social.</span>
+              <span className="form-hint">Não funciona com Instagram, Facebook ou Google Maps (páginas em JavaScript) — usa a opção de colar texto acima pra esses casos.</span>
             </div>
+            {erroExtracao && <span className="form-hint" style={{ color: 'var(--danger)' }}>{erroExtracao}</span>}
             <div className="section-divider">Dados do negócio</div>
             <div className="form-row">
               <label>Segmento *</label>
