@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 import { useAuth } from '../lib/AuthContext'
 import BacklogBoard from '../components/BacklogBoard'
+import TecnicoPanel from '../components/TecnicoPanel'
 
 const DOC_LABELS = {
   documento_tecnico: 'Documento Técnico',
@@ -112,6 +113,7 @@ export default function ProjetoDetalhe() {
         <button className={'tab-btn' + (aba === 'resumo' ? ' active' : '')} onClick={() => setAba('resumo')}>Resumo</button>
         <button className={'tab-btn' + (aba === 'documentos' ? ' active' : '')} onClick={() => setAba('documentos')}>Documentos</button>
         <button className={'tab-btn' + (aba === 'backlog' ? ' active' : '')} onClick={() => setAba('backlog')}>Backlog</button>
+        <button className={'tab-btn' + (aba === 'tecnico' ? ' active' : '')} onClick={() => setAba('tecnico')}>Técnico</button>
         <button className={'tab-btn' + (aba === 'timeline' ? ' active' : '')} onClick={() => setAba('timeline')}>Timeline</button>
       </div>
 
@@ -177,6 +179,8 @@ export default function ProjetoDetalhe() {
       {aba === 'backlog' && (
         <BacklogBoard projetoId={id} discoveryConfirmado={projeto.discovery_confirmado} />
       )}
+
+      {aba === 'tecnico' && <TecnicoPanel projetoId={id} />}
 
       {aba === 'timeline' && (
         <div className="timeline-list">
