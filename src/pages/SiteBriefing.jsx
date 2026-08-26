@@ -33,6 +33,9 @@ export default function SiteBriefing() {
   const [data, setData] = useState(emptyBriefing())
   const [confirming, setConfirming] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [linkExtracao, setLinkExtracao] = useState('')
+  const [extraindo, setExtraindo] = useState(false)
+  const [erroExtracao, setErroExtracao] = useState('')
 
   const [novaRede, setNovaRede] = useState('')
   const [novaRefUrl, setNovaRefUrl] = useState('')
@@ -79,6 +82,35 @@ export default function SiteBriefing() {
       localStorage.setItem(draftKey(id), JSON.stringify(next))
       return next
     })
+  }
+
+  async function handleExtrairComIA() {
+    if (!linkExtracao.trim()) return
+    setExtraindo(true)
+    setErroExtracao('')
+    try {
+      const { data: sessionData } = await sb.auth.getSession()
+      const resp = await fetch('/api/extrair-negocio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({ url: linkExtracao.trim() }),
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao extrair dados')
+      const d = result.dados || {}
+      updateStep('etapa1_negocio', {
+        segmento: d.segmento || data.etapa1_negocio.segmento,
+        endereco: d.endereco || data.etapa1_negocio.endereco,
+        telefone: d.telefone || data.etapa1_negocio.telefone,
+        horario: d.horario || data.etapa1_negocio.horario,
+        descricao: d.descricao || data.etapa1_negocio.descricao,
+        diferenciais: d.diferenciais || data.etapa1_negocio.diferenciais,
+      })
+    } catch (err) {
+      setErroExtracao(err.message)
+    } finally {
+      setExtraindo(false)
+    }
   }
 
   async function handleUploadFoto(e) {
@@ -181,6 +213,23 @@ export default function SiteBriefing() {
       <div className="wizard-card">
         {step === 0 && (
           <div>
+            <div className="form-row">
+              <label>Extrair de um link (site ou rede social)</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  style={{ flex: 1 }}
+                  placeholder="https://site-do-cliente.com.br ou instagram.com/cliente"
+                  value={linkExtracao}
+                  onChange={(e) => setLinkExtracao(e.target.value)}
+                />
+                <button type="button" className="btn-ghost" onClick={handleExtrairComIA} disabled={extraindo || !linkExtracao.trim()}>
+                  {extraindo ? 'Extraindo...' : '✨ Extrair com IA'}
+                </button>
+              </div>
+              {erroExtracao && <span className="form-hint" style={{ color: 'var(--danger)' }}>{erroExtracao}</span>}
+              <span className="form-hint">Não funciona com link do Google Maps (página em JavaScript) — usa site ou rede social.</span>
+            </div>
+            <div className="section-divider">Dados do negócio</div>
             <div className="form-row">
               <label>Segmento *</label>
               <input value={data.etapa1_negocio.segmento} onChange={(e) => updateStep('etapa1_negocio', { segmento: e.target.value })} />
