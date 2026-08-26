@@ -17,6 +17,12 @@ const STATUS_PAGAMENTO = {
   cancelado: 'Cancelado',
 }
 
+function parseRepoUrl(url) {
+  const m = (url || '').match(/github\.com\/([^/]+)\/([^/#?]+)/)
+  if (!m) return null
+  return { owner: m[1], repo: m[2].replace(/\.git$/, '') }
+}
+
 function emptyForm(projetoId) {
   return {
     projeto_id: projetoId,
@@ -40,6 +46,9 @@ export default function TecnicoPanel({ projetoId }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [salvo, setSalvo] = useState(false)
+  const [githubStatus, setGithubStatus] = useState(null)
+  const [githubLoading, setGithubLoading] = useState(false)
+  const [githubError, setGithubError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -79,6 +88,29 @@ export default function TecnicoPanel({ projetoId }) {
     setTimeout(() => setSalvo(false), 2000)
   }
 
+  async function atualizarGithub() {
+    const parsed = parseRepoUrl(form.repo_url)
+    if (!parsed) {
+      setGithubError('URL de repositório inválida — precisa ser algo tipo https://github.com/dono/repo')
+      return
+    }
+    setGithubLoading(true)
+    setGithubError('')
+    try {
+      const { data: sessionData } = await sb.auth.getSession()
+      const resp = await fetch(`/api/github-status?owner=${encodeURIComponent(parsed.owner)}&repo=${encodeURIComponent(parsed.repo)}`, {
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao consultar o GitHub')
+      setGithubStatus(result)
+    } catch (err) {
+      setGithubError(err.message)
+    } finally {
+      setGithubLoading(false)
+    }
+  }
+
   if (loading) return <div className="empty-state">Carregando...</div>
 
   const fmtMoney = (n) => 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
@@ -97,7 +129,23 @@ export default function TecnicoPanel({ projetoId }) {
           <div className="section-divider">Infraestrutura</div>
           <div className="form-row">
             <label>Repositório GitHub</label>
-            <input value={form.repo_url} onChange={(e) => setForm({ ...form, repo_url: e.target.value })} placeholder="https://github.com/desiberneia-netizen/..." />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input style={{ flex: 1 }} value={form.repo_url} onChange={(e) => setForm({ ...form, repo_url: e.target.value })} placeholder="https://github.com/desiberneia-netizen/..." />
+              <button type="button" className="btn-ghost" onClick={atualizarGithub} disabled={githubLoading || !form.repo_url}>
+                {githubLoading ? 'Consultando...' : 'Atualizar status'}
+              </button>
+            </div>
+            {githubError && <span className="form-hint" style={{ color: 'var(--danger)' }}>{githubError}</span>}
+            {githubStatus && (
+              <div className="banner-hint" style={{ justifyContent: 'flex-start', gap: 20, marginTop: 10 }}>
+                <span>Branch: <b style={{ color: 'var(--text)' }}>{githubStatus.branch}</b></span>
+                {githubStatus.ultimoCommit && (
+                  <span>
+                    Último commit: <b style={{ color: 'var(--text)' }}>{githubStatus.ultimoCommit.mensagem}</b> ({githubStatus.ultimoCommit.sha}, {githubStatus.ultimoCommit.autor}, {new Date(githubStatus.ultimoCommit.data).toLocaleDateString('pt-BR')})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <div className="form-row-split">
             <div className="form-row">
