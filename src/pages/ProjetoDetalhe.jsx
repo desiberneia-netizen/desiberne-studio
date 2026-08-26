@@ -5,12 +5,17 @@ import { useAuth } from '../lib/AuthContext'
 import BacklogBoard from '../components/BacklogBoard'
 import TecnicoPanel from '../components/TecnicoPanel'
 
-const DOC_LABELS = {
+const DOC_LABELS_CRM = {
   documento_tecnico: 'Documento Técnico',
   escopo_funcional: 'Escopo Funcional',
   backlog: 'Backlog',
   roadmap: 'Roadmap',
   prompt_claude_code: 'Prompt (Claude Code)',
+}
+
+const DOC_LABELS_SITE = {
+  brief_resumido: 'Brief Resumido',
+  prompt_site_claude_code: 'Prompt (Claude Code)',
 }
 
 const STATUS_LABEL = {
@@ -30,7 +35,7 @@ export default function ProjetoDetalhe() {
   const [timeline, setTimeline] = useState([])
   const [loading, setLoading] = useState(true)
   const [aba, setAba] = useState('resumo')
-  const [docAtivo, setDocAtivo] = useState('prompt_claude_code')
+  const [docAtivo, setDocAtivo] = useState(null)
   const [copiado, setCopiado] = useState(false)
   const [gerandoIA, setGerandoIA] = useState(false)
   const [erroIA, setErroIA] = useState('')
@@ -46,6 +51,7 @@ export default function ProjetoDetalhe() {
       setProjeto(proj)
       setDocumentos(docs || [])
       setTimeline(tl || [])
+      setDocAtivo(proj?.tipo_projeto === 'site' ? 'prompt_site_claude_code' : 'prompt_claude_code')
       setLoading(false)
     }
     load()
@@ -53,6 +59,10 @@ export default function ProjetoDetalhe() {
 
   if (loading) return <div className="empty-state">Carregando...</div>
   if (!projeto) return <div className="banner-error">Projeto não encontrado.</div>
+
+  const isSite = projeto.tipo_projeto === 'site'
+  const DOC_LABELS = isSite ? DOC_LABELS_SITE : DOC_LABELS_CRM
+  const promptTipo = isSite ? 'prompt_site_claude_code' : 'prompt_claude_code'
 
   const ultimaVersao = documentos[0]?.versao
   const docsUltimaVersao = documentos.filter((d) => d.versao === ultimaVersao)
@@ -63,18 +73,30 @@ export default function ProjetoDetalhe() {
     setGerandoIA(true)
     setErroIA('')
     try {
-      const { data: snapshot, error: errSnap } = await sb
-        .from('sh_discovery_snapshots')
-        .select('*')
-        .eq('id', docSelecionado.discovery_snapshot_id)
-        .single()
-      if (errSnap) throw errSnap
+      let contextoExtra = {}
+      if (isSite) {
+        const { data: briefing, error: errBrief } = await sb
+          .from('sh_briefing_sites')
+          .select('*')
+          .eq('id', docSelecionado.briefing_site_id)
+          .single()
+        if (errBrief) throw errBrief
+        contextoExtra = { briefing }
+      } else {
+        const { data: snapshot, error: errSnap } = await sb
+          .from('sh_discovery_snapshots')
+          .select('*')
+          .eq('id', docSelecionado.discovery_snapshot_id)
+          .single()
+        if (errSnap) throw errSnap
+        contextoExtra = { snapshot }
+      }
 
       const { data: sessionData } = await sb.auth.getSession()
       const resp = await fetch('/api/gerar-documento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
-        body: JSON.stringify({ tipo: docAtivo, cliente: projeto.sh_clientes, projeto, snapshot }),
+        body: JSON.stringify({ tipo: docAtivo, cliente: projeto.sh_clientes, projeto, ...contextoExtra }),
       })
       const result = await resp.json()
       if (!resp.ok) throw new Error(result.error || 'Erro ao gerar com IA')
@@ -91,7 +113,7 @@ export default function ProjetoDetalhe() {
   }
 
   function copiarPrompt() {
-    const doc = docsUltimaVersao.find((d) => d.tipo === 'prompt_claude_code')
+    const doc = docsUltimaVersao.find((d) => d.tipo === promptTipo)
     if (!doc) return
     navigator.clipboard.writeText(doc.conteudo).then(() => {
       setCopiado(true)
@@ -104,7 +126,10 @@ export default function ProjetoDetalhe() {
       <div className="page-header">
         <div>
           <h1><code>{projeto.codigo}</code> {projeto.nome}</h1>
-          <p>{projeto.sh_clientes?.nome}{projeto.sh_clientes?.empresa ? ` · ${projeto.sh_clientes.empresa}` : ''}</p>
+          <p>
+            {projeto.sh_clientes?.nome}{projeto.sh_clientes?.empresa ? ` · ${projeto.sh_clientes.empresa}` : ''}
+            {' · '}<span className={'tipo-pill tipo-' + (projeto.tipo_projeto || 'crm')}>{isSite ? 'Site / Landing Page' : 'CRM / Sistema'}</span>
+          </p>
         </div>
         <span className={'status-pill status-' + projeto.status}>{STATUS_LABEL[projeto.status] || projeto.status}</span>
       </div>
@@ -112,7 +137,9 @@ export default function ProjetoDetalhe() {
       <div className="tabs-row">
         <button className={'tab-btn' + (aba === 'resumo' ? ' active' : '')} onClick={() => setAba('resumo')}>Resumo</button>
         <button className={'tab-btn' + (aba === 'documentos' ? ' active' : '')} onClick={() => setAba('documentos')}>Documentos</button>
-        <button className={'tab-btn' + (aba === 'backlog' ? ' active' : '')} onClick={() => setAba('backlog')}>Backlog</button>
+        {!isSite && (
+          <button className={'tab-btn' + (aba === 'backlog' ? ' active' : '')} onClick={() => setAba('backlog')}>Backlog</button>
+        )}
         <button className={'tab-btn' + (aba === 'tecnico' ? ' active' : '')} onClick={() => setAba('tecnico')}>Técnico</button>
         <button className={'tab-btn' + (aba === 'timeline' ? ' active' : '')} onClick={() => setAba('timeline')}>Timeline</button>
       </div>
@@ -123,16 +150,16 @@ export default function ProjetoDetalhe() {
             <div><span className="resumo-label">Responsável</span><span>{projeto.responsavel || '—'}</span></div>
             <div><span className="resumo-label">Prioridade</span><span>{projeto.prioridade}</span></div>
             <div><span className="resumo-label">Prazo</span><span>{projeto.prazo ? new Date(projeto.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</span></div>
-            <div><span className="resumo-label">Discovery</span><span>{projeto.discovery_confirmado ? `confirmado (v${ultimaVersao || 1})` : 'não confirmado'}</span></div>
+            <div><span className="resumo-label">{isSite ? 'Briefing' : 'Discovery'}</span><span>{projeto.discovery_confirmado ? `confirmado (v${ultimaVersao || 1})` : 'não confirmado'}</span></div>
           </div>
           {isAdminOuGestor && (
             !projeto.discovery_confirmado ? (
-              <Link className="btn-primary" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
-                Iniciar Discovery
+              <Link className="btn-primary" to={`/projetos/${id}/${isSite ? 'briefing-site' : 'discovery'}`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
+                {isSite ? 'Iniciar Briefing' : 'Iniciar Discovery'}
               </Link>
             ) : (
-              <Link className="btn-ghost" to={`/projetos/${id}/discovery`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
-                Revisar Discovery (cria nova versão)
+              <Link className="btn-ghost" to={`/projetos/${id}/${isSite ? 'briefing-site' : 'discovery'}`} style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}>
+                {isSite ? 'Revisar Briefing (cria nova versão)' : 'Revisar Discovery (cria nova versão)'}
               </Link>
             )
           )}
@@ -142,7 +169,7 @@ export default function ProjetoDetalhe() {
       {aba === 'documentos' && (
         <div>
           {docsUltimaVersao.length === 0 ? (
-            <div className="empty-state">Nenhum documento gerado ainda — confirme o Discovery primeiro.</div>
+            <div className="empty-state">Nenhum documento gerado ainda — confirme o {isSite ? 'Briefing' : 'Discovery'} primeiro.</div>
           ) : (
             <div className="doc-viewer">
               <div className="doc-tabs">
@@ -162,7 +189,7 @@ export default function ProjetoDetalhe() {
                       {gerandoIA ? 'Gerando com IA...' : '✨ Gerar com IA'}
                     </button>
                   )}
-                  {docAtivo === 'prompt_claude_code' && (
+                  {docAtivo === promptTipo && (
                     <button className="btn-ghost" onClick={copiarPrompt}>
                       {copiado ? 'Copiado!' : 'Copiar prompt'}
                     </button>
@@ -176,11 +203,11 @@ export default function ProjetoDetalhe() {
         </div>
       )}
 
-      {aba === 'backlog' && (
+      {aba === 'backlog' && !isSite && (
         <BacklogBoard projetoId={id} discoveryConfirmado={projeto.discovery_confirmado} />
       )}
 
-      {aba === 'tecnico' && <TecnicoPanel projetoId={id} />}
+      {aba === 'tecnico' && <TecnicoPanel projetoId={id} tipoProjeto={projeto.tipo_projeto} />}
 
       {aba === 'timeline' && (
         <div className="timeline-list">

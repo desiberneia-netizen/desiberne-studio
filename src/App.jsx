@@ -7,6 +7,7 @@ import Clientes from './pages/Clientes'
 import Projetos from './pages/Projetos'
 import ProjetoDetalhe from './pages/ProjetoDetalhe'
 import Discovery from './pages/Discovery'
+import SiteBriefing from './pages/SiteBriefing'
 import Usuarios from './pages/Usuarios'
 import Ideias from './pages/Ideias'
 import Templates from './pages/Templates'
@@ -32,6 +33,7 @@ function App() {
               <Route path="/projetos" element={<Projetos />} />
               <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
               <Route path="/projetos/:id/discovery" element={<Discovery />} />
+              <Route path="/projetos/:id/briefing-site" element={<SiteBriefing />} />
               <Route path="/usuarios" element={<Usuarios />} />
               <Route path="/ideias" element={<Ideias />} />
               <Route path="/templates" element={<Templates />} />

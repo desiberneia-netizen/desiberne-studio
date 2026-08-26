@@ -7,6 +7,8 @@ const DOC_INSTRUCOES = {
   backlog: 'Escreva um Backlog priorizado, dividido em seções MVP / V2 / V3, com base nas funcionalidades e no fluxo descritos. Cada item deve ser uma linha curta e acionável. Markdown.',
   roadmap: 'Escreva um Roadmap de implementação em fases (Discovery concluído, MVP, V2, Entrega), com uma frase objetiva por fase considerando o prazo e a prioridade informados. Markdown.',
   prompt_claude_code: 'Escreva um briefing técnico completo para ser entregue ao Claude Code (agente de desenvolvimento de IA) implementar este projeto do zero. Estruture em seções: Contexto do cliente, Objetivo do projeto, Fluxo operacional, Funcionalidades e prioridade, Modelo de dados sugerido, Perfis e permissões, Integrações, Identidade visual, Restrições e requisitos especiais, Critérios de aceite do MVP. Seja concreto e implementável, não genérico. Markdown.',
+  brief_resumido: 'Escreva um Brief Resumido de uma página pra alinhar com o cliente antes de começar: negócio, mídia disponível, direção visual e estrutura de páginas. Markdown, direto, sem enrolação.',
+  prompt_site_claude_code: 'Escreva um briefing completo para ser entregue ao Claude Code implementar este site do zero (estático, sem painel de edição pro cliente, deploy Vercel). Estruture em seções: Negócio, Direção visual (com instrução explícita de evitar visual genérico de IA — sem gradiente roxo-azul padrão, sem Inter como escolha automática, sem cards centralizados com ícone sem motivo), Mídia disponível, Estrutura de páginas com o que cada uma precisa conter, Requisitos especiais, Critérios de aceite. Seja concreto, não genérico. Markdown.',
 }
 
 function montarContexto({ cliente, projeto, snapshot }) {
@@ -49,14 +51,46 @@ REQUISITOS ESPECIAIS: ${e8 || '—'}
 `.trim()
 }
 
+function montarContextoSite({ cliente, projeto, briefing }) {
+  const e1 = briefing.etapa1_negocio || {}
+  const e2 = briefing.etapa2_midia || {}
+  const e3 = briefing.etapa3_referencias || {}
+  const e4 = briefing.etapa4_estrutura || {}
+  const e5 = briefing.etapa5_requisitos_especiais || ''
+
+  return `
+CLIENTE: ${cliente.nome}${cliente.empresa ? ` (${cliente.empresa})` : ''}
+PROJETO: ${projeto.nome} — código ${projeto.codigo}
+
+SEGMENTO: ${e1.segmento || '—'}
+ENDEREÇO: ${e1.endereco || '—'}
+TELEFONE: ${e1.telefone || '—'}
+HORÁRIO: ${e1.horario || '—'}
+DESCRIÇÃO: ${e1.descricao || '—'}
+DIFERENCIAIS: ${e1.diferenciais || '—'}
+
+FOTOS DISPONÍVEIS: ${(e2.fotos || []).map((f) => f.url).join(', ') || '—'}
+REDES SOCIAIS: ${(e2.redesSociais || []).join(', ') || '—'}
+
+REFERÊNCIAS DE ESTILO: ${(e3.referencias || []).map((r) => `${r.url} (motivo: ${r.motivo || 'não detalhado'})`).join('; ') || '—'}
+PALETA: ${(e3.cores || []).join(', ') || '—'}
+TOM DE VOZ: ${e3.tomDeVoz || '—'}
+
+ESTRUTURA DE PÁGINAS: ${(e4.paginas || []).map((p) => `${p.nome}: ${p.conteudo || 'sem detalhe'}`).join(' | ') || '—'}
+
+REQUISITOS ESPECIAIS: ${e5 || '—'}
+`.trim()
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' })
     return
   }
 
-  const { tipo, cliente, projeto, snapshot } = req.body || {}
-  if (!tipo || !DOC_INSTRUCOES[tipo] || !cliente || !projeto || !snapshot) {
+  const { tipo, cliente, projeto, snapshot, briefing } = req.body || {}
+  const contextoDado = snapshot || briefing
+  if (!tipo || !DOC_INSTRUCOES[tipo] || !cliente || !projeto || !contextoDado) {
     res.status(400).json({ error: 'Parâmetros inválidos' })
     return
   }
@@ -84,7 +118,9 @@ export default async function handler(req, res) {
     return
   }
 
-  const contexto = montarContexto({ cliente, projeto, snapshot })
+  const contexto = briefing
+    ? montarContextoSite({ cliente, projeto, briefing })
+    : montarContexto({ cliente, projeto, snapshot })
 
   try {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {

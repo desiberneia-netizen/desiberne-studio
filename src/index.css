@@ -421,6 +421,16 @@ button {
 .status-ideia-aprovada { background: rgba(16,185,129,0.1); color: #10b981; }
 .status-ideia-descartada { background: rgba(90,90,133,0.15); color: var(--muted); }
 
+.tipo-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.tipo-crm { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.tipo-site { background: rgba(232,138,79,0.14); color: #e08a4f; }
+
 /* ===== DASHBOARD ===== */
 .kpi-grid {
   display: grid;

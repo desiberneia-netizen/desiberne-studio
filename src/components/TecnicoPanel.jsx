@@ -36,6 +36,8 @@ function emptyForm(projetoId) {
     valor_mensalidade: '',
     status_pagamento: 'pendente',
     data_inicio_mensalidade: '',
+    dominio_proprietario: '',
+    custo_dominio_anual: '',
   }
 }
 
@@ -64,6 +66,8 @@ export default function TecnicoPanel({ projetoId }) {
           valor_implementacao: data.valor_implementacao ?? '',
           valor_mensalidade: data.valor_mensalidade ?? '',
           data_inicio_mensalidade: data.data_inicio_mensalidade || '',
+          dominio_proprietario: data.dominio_proprietario || '',
+          custo_dominio_anual: data.custo_dominio_anual ?? '',
         })
       }
       setLoading(false)
@@ -80,6 +84,8 @@ export default function TecnicoPanel({ projetoId }) {
       valor_implementacao: form.valor_implementacao === '' ? null : Number(form.valor_implementacao),
       valor_mensalidade: form.valor_mensalidade === '' ? null : Number(form.valor_mensalidade),
       data_inicio_mensalidade: form.data_inicio_mensalidade || null,
+      dominio_proprietario: form.dominio_proprietario || null,
+      custo_dominio_anual: form.custo_dominio_anual === '' ? null : Number(form.custo_dominio_anual),
     }
     const { error } = await sb.from('sh_tecnico').upsert(payload, { onConflict: 'projeto_id' })
     setSaving(false)
@@ -196,7 +202,7 @@ export default function TecnicoPanel({ projetoId }) {
           <div className="form-row-split">
             <div className="form-row">
               <label>Domínio</label>
-              <input value={form.dominio} onChange={(e) => setForm({ ...form, dominio: e.target.value })} />
+              <input value={form.dominio} onChange={(e) => setForm({ ...form, dominio: e.target.value })} placeholder="nomedaempresa.com.br" />
             </div>
             <div className="form-row">
               <label>Status do deploy</label>
@@ -204,6 +210,22 @@ export default function TecnicoPanel({ projetoId }) {
                 {Object.entries(STATUS_DEPLOY).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
+          </div>
+          <div className="form-row-split">
+            <div className="form-row">
+              <label>Quem administra o domínio</label>
+              <select value={form.dominio_proprietario} onChange={(e) => setForm({ ...form, dominio_proprietario: e.target.value })}>
+                <option value="">— não definido —</option>
+                <option value="cliente">Cliente (já tinha ou comprou por conta própria)</option>
+                <option value="desiberne">Desiberne administra pro cliente</option>
+              </select>
+            </div>
+            {form.dominio_proprietario === 'desiberne' && (
+              <div className="form-row">
+                <label>Custo anual do domínio</label>
+                <input type="number" step="0.01" value={form.custo_dominio_anual} onChange={(e) => setForm({ ...form, custo_dominio_anual: e.target.value })} placeholder="Ex: 40" />
+              </div>
+            )}
           </div>
           <div className="form-row">
             <label>Onde estão as credenciais</label>

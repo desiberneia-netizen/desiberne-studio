@@ -12,9 +12,12 @@ const STATUS_LABEL = {
   pausado: 'Pausado',
 }
 
+const TIPO_LABEL = { crm: 'CRM / Sistema', site: 'Site / Landing Page' }
+
 const emptyForm = {
   id: null,
   cliente_id: '',
+  tipo_projeto: 'crm',
   template_origem_id: '',
   nome: '',
   responsavel: '',
@@ -66,6 +69,7 @@ export default function Projetos() {
     setForm({
       id: p.id,
       cliente_id: p.cliente_id || '',
+      tipo_projeto: p.tipo_projeto || 'crm',
       nome: p.nome || '',
       responsavel: p.responsavel || '',
       prazo: p.prazo || '',
@@ -88,7 +92,10 @@ export default function Projetos() {
       prioridade: form.prioridade,
       status: form.status,
     }
-    if (!form.id) payload.template_origem_id = form.template_origem_id || null
+    if (!form.id) {
+      payload.tipo_projeto = form.tipo_projeto
+      payload.template_origem_id = form.tipo_projeto === 'crm' ? form.template_origem_id || null : null
+    }
     const { error } = form.id
       ? await sb.from('sh_projetos').update(payload).eq('id', form.id)
       : await sb.from('sh_projetos').insert(payload)
@@ -138,6 +145,7 @@ export default function Projetos() {
               <tr>
                 <th>Código</th>
                 <th>Projeto</th>
+                <th>Tipo</th>
                 <th>Cliente</th>
                 <th>Status</th>
                 <th>Prioridade</th>
@@ -150,6 +158,7 @@ export default function Projetos() {
                 <tr key={p.id} onClick={() => navigate(`/projetos/${p.id}`)}>
                   <td><code>{p.codigo}</code></td>
                   <td>{p.nome}</td>
+                  <td><span className={'tipo-pill tipo-' + (p.tipo_projeto || 'crm')}>{TIPO_LABEL[p.tipo_projeto || 'crm']}</span></td>
                   <td>{p.sh_clientes?.nome || '—'}</td>
                   <td><span className={'status-pill status-' + p.status}>{STATUS_LABEL[p.status] || p.status}</span></td>
                   <td>{p.prioridade}</td>
@@ -202,7 +211,15 @@ export default function Projetos() {
                   ))}
                 </select>
               </div>
-              {!form.id && templates.length > 0 && (
+              {!form.id && (
+                <div className="form-row">
+                  <label>Tipo de projeto</label>
+                  <select value={form.tipo_projeto} onChange={(e) => setForm({ ...form, tipo_projeto: e.target.value, template_origem_id: '' })}>
+                    {Object.entries(TIPO_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              )}
+              {!form.id && form.tipo_projeto === 'crm' && templates.length > 0 && (
                 <div className="form-row">
                   <label>Template (opcional)</label>
                   <select value={form.template_origem_id} onChange={(e) => setForm({ ...form, template_origem_id: e.target.value })}>
