@@ -49,6 +49,9 @@ export default function TecnicoPanel({ projetoId }) {
   const [githubStatus, setGithubStatus] = useState(null)
   const [githubLoading, setGithubLoading] = useState(false)
   const [githubError, setGithubError] = useState('')
+  const [vercelStatus, setVercelStatus] = useState(null)
+  const [vercelLoading, setVercelLoading] = useState(false)
+  const [vercelError, setVercelError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -111,6 +114,24 @@ export default function TecnicoPanel({ projetoId }) {
     }
   }
 
+  async function atualizarVercel() {
+    setVercelLoading(true)
+    setVercelError('')
+    try {
+      const { data: sessionData } = await sb.auth.getSession()
+      const resp = await fetch(`/api/vercel-status?project=${encodeURIComponent(form.vercel_project)}`, {
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao consultar a Vercel')
+      setVercelStatus(result)
+    } catch (err) {
+      setVercelError(err.message)
+    } finally {
+      setVercelLoading(false)
+    }
+  }
+
   if (loading) return <div className="empty-state">Carregando...</div>
 
   const fmtMoney = (n) => 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
@@ -154,7 +175,22 @@ export default function TecnicoPanel({ projetoId }) {
             </div>
             <div className="form-row">
               <label>Projeto Vercel</label>
-              <input value={form.vercel_project} onChange={(e) => setForm({ ...form, vercel_project: e.target.value })} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input style={{ flex: 1 }} value={form.vercel_project} onChange={(e) => setForm({ ...form, vercel_project: e.target.value })} placeholder="nome do projeto na Vercel" />
+                <button type="button" className="btn-ghost" onClick={atualizarVercel} disabled={vercelLoading || !form.vercel_project}>
+                  {vercelLoading ? 'Consultando...' : 'Atualizar status'}
+                </button>
+              </div>
+              {vercelError && <span className="form-hint" style={{ color: 'var(--danger)' }}>{vercelError}</span>}
+              {vercelStatus?.encontrado && (
+                <div className="banner-hint" style={{ justifyContent: 'flex-start', gap: 20, marginTop: 10 }}>
+                  <span>Estado: <b style={{ color: 'var(--text)' }}>{vercelStatus.estado}</b></span>
+                  <span>Deploy: <b style={{ color: 'var(--text)' }}>{new Date(vercelStatus.criadoEm).toLocaleString('pt-BR')}</b></span>
+                </div>
+              )}
+              {vercelStatus && !vercelStatus.encontrado && (
+                <span className="form-hint">Nenhum deploy encontrado pra esse nome de projeto.</span>
+              )}
             </div>
           </div>
           <div className="form-row-split">
