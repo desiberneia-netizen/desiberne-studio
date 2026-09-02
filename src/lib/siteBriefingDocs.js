@@ -66,10 +66,17 @@ export function gerarPromptSiteClaudeCode(ctx) {
 Construa um site institucional do zero, seguindo o briefing abaixo.
 
 ## Requisitos técnicos
-- Repositório novo, privado, na organização desiberneia-netizen no GitHub
-- Site estático — sem painel de edição pro cliente
-- Deploy na Vercel — assim que possível, gere o link de prévia (.vercel.app) pra mostrar ao cliente antes de qualquer domínio
+- Etapa 1 — Prévia: gere primeiro um único arquivo HTML autocontido (CSS/JS inline, sem backend), pra aprovação rápida do cliente sem depender de repositório ou deploy
+- Etapa 2 — Depois de aprovado: repositório novo, privado, na organização desiberneia-netizen no GitHub; site estático (sem painel de edição pro cliente); deploy na Vercel, gerando o link .vercel.app antes de qualquer domínio
 - Siga exatamente a direção visual e estrutura descritas abaixo, evitando visual genérico de IA (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo)
+
+## Padrões operacionais — não pergunte, decida e siga
+- Formulário de contato: use Web3Forms (grátis) como padrão; se não houver access key configurada, deixe funcional visualmente com um comentário indicando onde configurar depois — nunca bloqueie a entrega por isso
+- Agenda: não inclua integração de agendamento a menos que pedido explicitamente nos requisitos especiais abaixo
+- WhatsApp flutuante: use o telefone informado na seção Negócio abaixo, sem perguntar
+- Fotos insuficientes: use imagens de banco gratuito (Unsplash) como placeholder temporário, mantendo coerência visual — nunca bloqueie a entrega esperando mais fotos
+- Dados divergentes entre fontes: priorize sempre o que está escrito neste briefing
+- Regra geral: nunca pause esperando resposta do usuário para decisões operacionais — decida dentro destes padrões e só sinalize ao final o que foi assumido, pra revisão posterior
 
 ---
 
