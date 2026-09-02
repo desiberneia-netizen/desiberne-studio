@@ -61,7 +61,17 @@ export function gerarPromptSiteClaudeCode(ctx) {
   const e4 = briefing.etapa4_estrutura || {}
   const e5 = briefing.etapa5_requisitos_especiais || ''
 
-  return `# ${projeto.nome} — Briefing de Site para Claude Code
+  return `# Novo projeto Desiberne Studio — ${cliente.nome}${cliente.empresa ? ` (${cliente.empresa})` : ''}
+
+Construa um site institucional do zero, seguindo o briefing abaixo.
+
+## Requisitos técnicos
+- Repositório novo, privado, na organização desiberneia-netizen no GitHub
+- Site estático — sem painel de edição pro cliente
+- Deploy na Vercel — assim que possível, gere o link de prévia (.vercel.app) pra mostrar ao cliente antes de qualquer domínio
+- Siga exatamente a direção visual e estrutura descritas abaixo, evitando visual genérico de IA (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo)
+
+---
 
 ## Negócio
 ${cliente.nome}${cliente.empresa ? ` (${cliente.empresa})` : ''} — segmento: ${e1.segmento || '—'}.
