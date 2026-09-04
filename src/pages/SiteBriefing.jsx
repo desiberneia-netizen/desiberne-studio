@@ -9,7 +9,7 @@ const STEP_TITLES = ['Dados do negócio', 'Mídia', 'Referências e estilo', 'Es
 function emptyBriefing() {
   return {
     etapa1_negocio: { segmento: '', endereco: '', telefone: '', horario: '', descricao: '', diferenciais: '' },
-    etapa2_midia: { fotos: [], redesSociais: [] },
+    etapa2_midia: { logo: null, fotos: [], redesSociais: [] },
     etapa3_referencias: { referencias: [], cores: [], tomDeVoz: '' },
     etapa4_estrutura: { paginas: [] },
     etapa5_requisitos_especiais: '',
@@ -151,6 +151,25 @@ export default function SiteBriefing() {
         novasFotos.push({ nome: file.name, url: pub.publicUrl })
       }
       updateStep('etapa2_midia', { fotos: [...data.etapa2_midia.fotos, ...novasFotos] })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleUploadLogo(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError('')
+    try {
+      const path = `${id}/logo_${Date.now()}_${slugificarNomeArquivo(file.name)}`
+      const { error: errUpload } = await sb.storage.from('briefing-sites').upload(path, file)
+      if (errUpload) throw errUpload
+      const { data: pub } = sb.storage.from('briefing-sites').getPublicUrl(path)
+      updateStep('etapa2_midia', { logo: { nome: file.name, url: pub.publicUrl } })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -304,7 +323,21 @@ export default function SiteBriefing() {
 
         {step === 1 && (
           <div>
-            <p className="wizard-hint">Fotos do negócio (logo, fachada, produtos, equipe).</p>
+            <div className="form-row">
+              <label>Logo</label>
+              {data.etapa2_midia.logo ? (
+                <div className="fluxo-item">
+                  <img src={data.etapa2_midia.logo.url} alt="Logo" style={{ height: 32, width: 'auto', borderRadius: 4 }} />
+                  <span className="fluxo-nome">{data.etapa2_midia.logo.nome}</span>
+                  <button type="button" onClick={() => updateStep('etapa2_midia', { logo: null })}>×</button>
+                </div>
+              ) : (
+                <input type="file" accept="image/*" onChange={handleUploadLogo} disabled={uploading} />
+              )}
+              <span className="form-hint">Se não tiver arquivo de logo, o site usa o nome da empresa estilizado no header.</span>
+            </div>
+            <div className="section-divider">Fotos do negócio</div>
+            <p className="wizard-hint">Fachada, produtos, equipe, ambiente.</p>
             <div className="fluxo-list">
               {data.etapa2_midia.fotos.map((f, i) => (
                 <div key={i} className="fluxo-item">
@@ -463,7 +496,7 @@ export default function SiteBriefing() {
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Mídia</h3><button type="button" className="btn-ghost" onClick={() => setStep(1)}>Editar</button></div>
-              <p>{data.etapa2_midia.fotos.length} foto(s) · {data.etapa2_midia.redesSociais.join(', ') || 'sem redes sociais'}</p>
+              <p>{data.etapa2_midia.logo ? 'logo enviado' : 'sem logo'} · {data.etapa2_midia.fotos.length} foto(s) · {data.etapa2_midia.redesSociais.join(', ') || 'sem redes sociais'}</p>
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Referências e estilo</h3><button type="button" className="btn-ghost" onClick={() => setStep(2)}>Editar</button></div>

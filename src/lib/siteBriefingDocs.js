@@ -30,6 +30,7 @@ export function gerarBriefResumido(ctx) {
 
 ## Mídia
 
+- Logo: ${e2.logo ? 'enviado' : 'não enviado'}
 - Fotos: ${(e2.fotos || []).length} arquivo(s)
 - Redes sociais: ${list(e2.redesSociais)}
 
@@ -76,6 +77,7 @@ Construa um site institucional do zero, seguindo o briefing abaixo.
 - WhatsApp flutuante: use o telefone informado na seção Negócio abaixo, sem perguntar
 - Fotos insuficientes: use imagens de banco gratuito (Unsplash) como placeholder temporário, mantendo coerência visual — nunca bloqueie a entrega esperando mais fotos
 - Dados divergentes entre fontes: priorize sempre o que está escrito neste briefing
+- Logo: ${e2.logo?.url ? `use a imagem em ${e2.logo.url} como logo no header (substitui o nome da empresa em texto)` : 'nenhum arquivo de logo foi enviado — use o nome da empresa estilizado tipograficamente no header, sem inventar um logo gráfico'}
 - Regra geral: nunca pause esperando resposta do usuário para decisões operacionais — decida dentro destes padrões e só sinalize ao final o que foi assumido, pra revisão posterior
 
 ---
@@ -97,6 +99,7 @@ ${(e3.referencias || []).length
 Importante: evitar o "visual genérico de IA" (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo). Escolher tipografia e paleta específicas pro segmento e pro tom de voz descritos acima.
 
 ## Mídia disponível
+Logo: ${e2.logo?.url || 'não enviado'}
 Fotos: ${(e2.fotos || []).map((f) => f.url).join(', ') || 'nenhuma enviada'}
 Redes sociais: ${list(e2.redesSociais)}
 
