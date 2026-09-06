@@ -8,7 +8,7 @@ const DOC_INSTRUCOES = {
   roadmap: 'Escreva um Roadmap de implementação em fases (Discovery concluído, MVP, V2, Entrega), com uma frase objetiva por fase considerando o prazo e a prioridade informados. Markdown.',
   prompt_claude_code: 'Escreva um briefing técnico completo para ser entregue ao Claude Code (agente de desenvolvimento de IA) implementar este projeto do zero. Estruture em seções: Contexto do cliente, Objetivo do projeto, Fluxo operacional, Funcionalidades e prioridade, Modelo de dados sugerido, Perfis e permissões, Integrações, Identidade visual, Restrições e requisitos especiais, Critérios de aceite do MVP. Seja concreto e implementável, não genérico. Markdown.',
   brief_resumido: 'Escreva um Brief Resumido de uma página pra alinhar com o cliente antes de começar: negócio, mídia disponível, direção visual e estrutura de páginas. Markdown, direto, sem enrolação.',
-  prompt_site_claude_code: 'Escreva um briefing completo para ser entregue ao Claude Code implementar este site do zero. Comece SEMPRE com um título "# Novo projeto Desiberne Studio — {nome do cliente}" seguido de uma seção "## Requisitos técnicos" em duas etapas: (1) gerar primeiro um único arquivo HTML autocontido, CSS/JS inline, sem backend, pra aprovação rápida sem depender de repositório/deploy; (2) depois de aprovado, repositório novo e privado na organização desiberneia-netizen no GitHub, site estático sem painel de edição pro cliente, deploy na Vercel gerando o link .vercel.app antes de qualquer domínio; e seguir a direção visual descrita evitando visual genérico de IA (gradiente roxo-azul padrão, Inter como escolha automática, cards centralizados com ícone sem motivo). Logo depois, uma seção "## Padrões operacionais — não pergunte, decida e siga" com exatamente estas regras: formulário de contato usa Web3Forms grátis como padrão (funcional visualmente mesmo sem access key configurada); não incluir integração de agenda a menos que pedida nos requisitos especiais; WhatsApp flutuante usa o telefone informado no negócio, sem perguntar; fotos insuficientes usam placeholder do Unsplash mantendo coerência visual; dados divergentes entre fontes priorizam sempre o briefing; logo: se houver URL de logo no briefing, usar essa imagem no header (nunca inventar um logo gráfico), senão usar o nome da empresa estilizado tipograficamente; regra geral: nunca pausar esperando resposta do usuário, decidir dentro desses padrões e só sinalizar ao final o que foi assumido. Depois disso, estruture o resto em seções: Negócio, Direção visual, Mídia disponível, Estrutura de páginas com o que cada uma precisa conter, Requisitos especiais, Critérios de aceite. Seja concreto, não genérico. Markdown.',
+  prompt_site_claude_code: 'Escreva um briefing completo para ser entregue ao Claude Code implementar este site do zero. Comece SEMPRE com um título "# Novo projeto Desiberne Studio — {nome do cliente}" seguido de uma seção "## Requisitos técnicos" em duas etapas: (1) gerar primeiro um único arquivo HTML autocontido, CSS/JS inline, sem backend, pra aprovação rápida sem depender de repositório/deploy; (2) depois de aprovado, repositório novo e privado na organização desiberneia-netizen no GitHub, site estático sem painel de edição pro cliente, deploy na Vercel gerando o link .vercel.app antes de qualquer domínio; e seguir a direção visual descrita evitando visual genérico de IA (gradiente roxo-azul padrão, Inter como escolha automática, cards centralizados com ícone sem motivo). Logo depois, uma seção "## Padrões operacionais — não pergunte, decida e siga" com exatamente estas regras: formulário de contato usa Web3Forms grátis como padrão (funcional visualmente mesmo sem access key configurada); não incluir integração de agenda a menos que pedida nos requisitos especiais; WhatsApp flutuante usa o telefone informado no negócio, sem perguntar; fotos insuficientes usam placeholder do Unsplash mantendo coerência visual; dados divergentes entre fontes priorizam sempre o briefing; logo: se houver URL de logo no briefing, usar essa imagem no header (nunca inventar um logo gráfico), senão usar o nome da empresa estilizado tipograficamente; regra geral: nunca pausar esperando resposta do usuário, decidir dentro desses padrões e só sinalizar ao final o que foi assumido. Depois disso, uma seção "## Direção visual" descrevendo o ARQUÉTIPO de estilo informado (com a descrição concreta que vier nos dados) e executando-o de forma específica pro segmento do negócio, nunca genérica — se houver lista de "projetos recentes" nos dados, evitar explicitamente repetir a combinação de arquétipo/paleta usada neles. Depois disso, estruture o resto em seções: Negócio, Mídia disponível, Estrutura de páginas com o que cada uma precisa conter, Requisitos especiais, Critérios de aceite. Seja concreto, não genérico. Markdown.',
 }
 
 function montarContexto({ cliente, projeto, snapshot }) {
@@ -51,12 +51,25 @@ REQUISITOS ESPECIAIS: ${e8 || '—'}
 `.trim()
 }
 
-function montarContextoSite({ cliente, projeto, briefing }) {
+const ARQUETIPO_DIRECAO = {
+  editorial: 'Editorial / elegante — tipografia serifada de destaque, bastante espaço em branco, composição assimétrica tipo revista. Tom sofisticado, atemporal.',
+  minimalista: 'Minimalista / técnico — sans-serif limpa, grid rígido, paleta reduzida (2-3 cores). Tom confiável, objetivo.',
+  artesanal: 'Quente / artesanal — texturas sutis, tons terrosos, tipografia com personalidade. Tom humano, próximo.',
+  bold: 'Bold / moderno — contraste alto, tipografia grande e pesada, blocos de cor sólida. Tom confiante, direto.',
+  classico: 'Clássico / confiável — paleta sóbria, tipografia tradicional, layout simétrico. Tom sério, institucional.',
+  vibrante: 'Vibrante / jovem — cores vivas, formas orgânicas, tipografia divertida. Tom energético, acessível.',
+}
+
+function montarContextoSite({ cliente, projeto, briefing, recentes }) {
   const e1 = briefing.etapa1_negocio || {}
   const e2 = briefing.etapa2_midia || {}
   const e3 = briefing.etapa3_referencias || {}
   const e4 = briefing.etapa4_estrutura || {}
   const e5 = briefing.etapa5_requisitos_especiais || ''
+
+  const recentesTexto = (recentes || []).length
+    ? `\nPROJETOS RECENTES (evitar repetir arquétipo/paleta): ${recentes.map((r) => `${ARQUETIPO_DIRECAO[r.arquetipo] ? r.arquetipo : r.arquetipo}${r.cores?.length ? ` (${r.cores.join(', ')})` : ''}`).join('; ')}\n`
+    : ''
 
   return `
 CLIENTE: ${cliente.nome}${cliente.empresa ? ` (${cliente.empresa})` : ''}
@@ -73,10 +86,11 @@ LOGO: ${e2.logo?.url || 'não enviado'}
 FOTOS DISPONÍVEIS: ${(e2.fotos || []).map((f) => f.url).join(', ') || '—'}
 REDES SOCIAIS: ${(e2.redesSociais || []).join(', ') || '—'}
 
+ARQUÉTIPO DE ESTILO: ${ARQUETIPO_DIRECAO[e3.arquetipo] || e3.arquetipo || 'não definido'}
 REFERÊNCIAS DE ESTILO: ${(e3.referencias || []).map((r) => `${r.url} (motivo: ${r.motivo || 'não detalhado'})`).join('; ') || '—'}
 PALETA: ${(e3.cores || []).join(', ') || '—'}
 TOM DE VOZ: ${e3.tomDeVoz || '—'}
-
+${recentesTexto}
 ESTRUTURA DE PÁGINAS: ${(e4.paginas || []).map((p) => `${p.nome}: ${p.conteudo || 'sem detalhe'}`).join(' | ') || '—'}
 
 REQUISITOS ESPECIAIS: ${e5 || '—'}
@@ -119,9 +133,30 @@ export default async function handler(req, res) {
     return
   }
 
-  const contexto = briefing
-    ? montarContextoSite({ cliente, projeto, briefing })
-    : montarContexto({ cliente, projeto, snapshot })
+  let contexto
+  if (briefing) {
+    let recentes = []
+    try {
+      const q = `${supabaseUrl}/rest/v1/sh_briefing_sites?select=projeto_id,etapa3_referencias,created_at&projeto_id=neq.${briefing.projeto_id}&order=created_at.desc&limit=10`
+      const recResp = await fetch(q, { headers: { apikey: supabaseAnonKey, Authorization: `Bearer ${token}` } })
+      if (recResp.ok) {
+        const rows = await recResp.json()
+        const vistos = new Set()
+        for (const r of rows) {
+          if (vistos.has(r.projeto_id)) continue
+          vistos.add(r.projeto_id)
+          const e3 = r.etapa3_referencias || {}
+          if (e3.arquetipo) recentes.push({ arquetipo: e3.arquetipo, cores: e3.cores || [] })
+          if (recentes.length >= 3) break
+        }
+      }
+    } catch {
+      // se falhar, segue sem anti-repeticao — nao bloqueia a geracao
+    }
+    contexto = montarContextoSite({ cliente, projeto, briefing, recentes })
+  } else {
+    contexto = montarContexto({ cliente, projeto, snapshot })
+  }
 
   try {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {

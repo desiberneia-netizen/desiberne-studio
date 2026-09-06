@@ -1,9 +1,25 @@
 // Geração dos documentos do Estúdio de Sites a partir de um briefing confirmado.
 // MVP: baseado em template/regras. IA assistida via /api/gerar-documento com tipo específico.
 
+import { ARQUETIPOS_SITE } from './catalogos'
+
 function list(items, empty = '_nenhum item informado_') {
   if (!items || items.length === 0) return empty
   return items.map((i) => `- ${i}`).join('\n')
+}
+
+function labelArquetipo(id) {
+  return ARQUETIPOS_SITE.find((a) => a.id === id)?.label || id || '—'
+}
+
+function direcaoArquetipo(id) {
+  return ARQUETIPOS_SITE.find((a) => a.id === id)?.direcao || ''
+}
+
+function textoAntiRepeticao(recentes) {
+  if (!recentes || recentes.length === 0) return ''
+  const linhas = recentes.map((r) => `- ${labelArquetipo(r.arquetipo)}${r.cores?.length ? ` (paleta: ${r.cores.join(', ')})` : ''}`).join('\n')
+  return `\nJá usamos recentemente em outros projetos:\n${linhas}\nEvite repetir essas combinações de arquétipo/paleta — busque uma execução visualmente distinta, mesmo dentro do arquétipo escolhido abaixo.\n`
 }
 
 export function gerarBriefResumido(ctx) {
@@ -36,6 +52,7 @@ export function gerarBriefResumido(ctx) {
 
 ## Estilo e referências
 
+- Arquétipo: ${labelArquetipo(e3.arquetipo)}
 ${(e3.referencias || []).length
     ? e3.referencias.map((r) => `- **${r.url}** — ${r.motivo || 'sem motivo detalhado'}`).join('\n')
     : '_nenhuma referência informada_'}
@@ -55,7 +72,7 @@ ${e5 || '—'}
 }
 
 export function gerarPromptSiteClaudeCode(ctx) {
-  const { cliente, projeto, briefing } = ctx
+  const { cliente, projeto, briefing, recentes } = ctx
   const e1 = briefing.etapa1_negocio || {}
   const e2 = briefing.etapa2_midia || {}
   const e3 = briefing.etapa3_referencias || {}
@@ -89,6 +106,9 @@ Descrição: ${e1.descricao || '—'}
 Diferenciais: ${e1.diferenciais || '—'}
 
 ## Direção visual
+Arquétipo escolhido: **${labelArquetipo(e3.arquetipo)}**
+${direcaoArquetipo(e3.arquetipo)}
+
 Paleta: ${(e3.cores || []).join(', ') || '—'}
 Tom de voz: ${e3.tomDeVoz || '—'}
 Referências que o cliente gosta:
@@ -96,7 +116,8 @@ ${(e3.referencias || []).length
     ? e3.referencias.map((r) => `- ${r.url} — motivo: ${r.motivo || 'não detalhado'}`).join('\n')
     : '—'}
 
-Importante: evitar o "visual genérico de IA" (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo). Escolher tipografia e paleta específicas pro segmento e pro tom de voz descritos acima.
+Importante: evitar o "visual genérico de IA" (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo). Execute o arquétipo escolhido acima de forma específica pro negócio, não genérica.
+${textoAntiRepeticao(recentes)}
 
 ## Mídia disponível
 Logo: ${e2.logo?.url || 'não enviado'}

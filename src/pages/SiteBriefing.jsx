@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 import { useAuth } from '../lib/AuthContext'
 import { gerarTodosDocumentosSite } from '../lib/siteBriefingDocs'
+import { ARQUETIPOS_SITE } from '../lib/catalogos'
 
 const STEP_TITLES = ['Dados do negócio', 'Mídia', 'Referências e estilo', 'Estrutura de páginas', 'Requisitos especiais', 'Revisão final']
 
@@ -10,7 +11,7 @@ function emptyBriefing() {
   return {
     etapa1_negocio: { segmento: '', endereco: '', telefone: '', horario: '', descricao: '', diferenciais: '' },
     etapa2_midia: { logo: null, fotos: [], redesSociais: [] },
-    etapa3_referencias: { referencias: [], cores: [], tomDeVoz: '' },
+    etapa3_referencias: { arquetipo: '', referencias: [], cores: [], tomDeVoz: '' },
     etapa4_estrutura: { paginas: [] },
     etapa5_requisitos_especiais: '',
   }
@@ -180,6 +181,7 @@ export default function SiteBriefing() {
 
   const canGoNext = useMemo(() => {
     if (step === 0) return data.etapa1_negocio.segmento.trim().length > 0
+    if (step === 2) return data.etapa3_referencias.arquetipo.trim().length > 0
     return true
   }, [step, data])
 
@@ -202,7 +204,23 @@ export default function SiteBriefing() {
         .single()
       if (errBrief) throw errBrief
 
-      const docs = gerarTodosDocumentosSite({ cliente, projeto, briefing })
+      const { data: outrosBriefings } = await sb
+        .from('sh_briefing_sites')
+        .select('projeto_id, etapa3_referencias, created_at')
+        .neq('projeto_id', id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      const vistos = new Set()
+      const recentes = []
+      for (const b of outrosBriefings || []) {
+        if (vistos.has(b.projeto_id)) continue
+        vistos.add(b.projeto_id)
+        const e3 = b.etapa3_referencias || {}
+        if (e3.arquetipo) recentes.push({ arquetipo: e3.arquetipo, cores: e3.cores || [] })
+        if (recentes.length >= 3) break
+      }
+
+      const docs = gerarTodosDocumentosSite({ cliente, projeto, briefing, recentes })
       const { error: errDocs } = await sb.from('sh_documentos_gerados').insert(
         docs.map((d) => ({ projeto_id: id, briefing_site_id: briefing.id, tipo: d.tipo, conteudo: d.conteudo, versao: proximaVersao }))
       )
@@ -376,6 +394,19 @@ export default function SiteBriefing() {
 
         {step === 2 && (
           <div>
+            <div className="form-row">
+              <label>Arquétipo de estilo *</label>
+              <select value={data.etapa3_referencias.arquetipo} onChange={(e) => updateStep('etapa3_referencias', { arquetipo: e.target.value })}>
+                <option value="" disabled>Selecione a direção visual...</option>
+                {ARQUETIPOS_SITE.map((a) => (
+                  <option key={a.id} value={a.id}>{a.label}</option>
+                ))}
+              </select>
+              {data.etapa3_referencias.arquetipo && (
+                <span className="form-hint">{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.direcao}</span>
+              )}
+            </div>
+            <div className="section-divider">Referências</div>
             <p className="wizard-hint">Sites de referência — o que especificamente o cliente gosta em cada um, não só o link.</p>
             <div className="fluxo-list">
               {data.etapa3_referencias.referencias.map((r, i) => (
@@ -500,7 +531,7 @@ export default function SiteBriefing() {
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Referências e estilo</h3><button type="button" className="btn-ghost" onClick={() => setStep(2)}>Editar</button></div>
-              <p>{data.etapa3_referencias.cores.join(', ') || 'sem paleta'} · tom: {data.etapa3_referencias.tomDeVoz || '—'}</p>
+              <p>{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.label || 'sem arquétipo'} · {data.etapa3_referencias.cores.join(', ') || 'sem paleta'} · tom: {data.etapa3_referencias.tomDeVoz || '—'}</p>
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Estrutura de páginas</h3><button type="button" className="btn-ghost" onClick={() => setStep(3)}>Editar</button></div>
