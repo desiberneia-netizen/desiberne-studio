@@ -35,6 +35,7 @@ export default function Projetos() {
   const [projetos, setProjetos] = useState([])
   const [clientes, setClientes] = useState([])
   const [templates, setTemplates] = useState([])
+  const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -43,16 +44,18 @@ export default function Projetos() {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: proj, error: errProj }, { data: cli, error: errCli }, { data: tpl }] = await Promise.all([
+    const [{ data: proj, error: errProj }, { data: cli, error: errCli }, { data: tpl }, { data: usu }] = await Promise.all([
       sb.from('sh_projetos').select('*, sh_clientes(nome)').order('created_at', { ascending: false }),
       sb.from('sh_clientes').select('id, nome').order('nome'),
       sb.from('sh_templates').select('id, nome').order('nome'),
+      sb.from('sh_usuarios').select('id, nome, email').order('nome'),
     ])
     if (errProj) setError(errProj.message)
     else if (errCli) setError(errCli.message)
     setProjetos(proj || [])
     setClientes(cli || [])
     setTemplates(tpl || [])
+    setUsuarios(usu || [])
     setLoading(false)
   }
 
@@ -238,7 +241,12 @@ export default function Projetos() {
               <div className="form-row-split">
                 <div className="form-row">
                   <label>Responsável</label>
-                  <input value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
+                  <select value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })}>
+                    <option value="">Sem responsável definido</option>
+                    {usuarios.map((u) => (
+                      <option key={u.id} value={u.nome || u.email}>{u.nome || u.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-row">
                   <label>Prazo</label>

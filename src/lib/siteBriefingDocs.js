@@ -57,7 +57,6 @@ ${(e3.referencias || []).length
     ? e3.referencias.map((r) => `- **${r.url}** — ${r.motivo || 'sem motivo detalhado'}`).join('\n')
     : '_nenhuma referência informada_'}
 - Paleta: ${(e3.cores || []).join(', ') || '—'}
-- Tom de voz: ${e3.tomDeVoz || '—'}
 
 ## Estrutura de páginas
 
@@ -88,6 +87,14 @@ Construa um site institucional do zero, seguindo o briefing abaixo.
 - Etapa 2 — Depois de aprovado: repositório novo, privado, na organização desiberneia-netizen no GitHub; site estático (sem painel de edição pro cliente); deploy na Vercel, gerando o link .vercel.app antes de qualquer domínio
 - Siga exatamente a direção visual e estrutura descritas abaixo, evitando visual genérico de IA (gradiente roxo-azul padrão, fonte Inter como escolha automática, cards centralizados com ícone sem motivo)
 
+## Padrão de qualidade — inegociável
+Este site é a vitrine do próprio serviço, não pode parecer template genérico. A prévia entregue precisa ser **extremamente impecável e impactante**:
+- Imagens grandes e bem tratadas (não thumbnails pequenos), com camadas/profundidade (overlays, sobreposição de elementos, parallax sutil ou scroll reveal)
+- Micro-animações e movimento sutil (fade/slide ao rolar, hover states elaborados, transições suaves) — sem exagerar a ponto de distrair
+- Tratamento moderno de tipografia e espaçamento, hierarquia visual clara
+- Isso tudo dentro do arquivo HTML único da Etapa 1 (CSS/JS inline, sem dependências externas pesadas — pode usar CSS puro + pequenas libs via CDN se necessário tipo AOS/GSAP para as animações)
+- Não é opcional nem "se der tempo" — é critério de aceite da entrega
+
 ## Padrões operacionais — não pergunte, decida e siga
 - Formulário de contato: use Web3Forms (grátis) como padrão; se não houver access key configurada, deixe funcional visualmente com um comentário indicando onde configurar depois — nunca bloqueie a entrega por isso
 - Agenda: não inclua integração de agendamento a menos que pedido explicitamente nos requisitos especiais abaixo
@@ -110,7 +117,6 @@ Arquétipo escolhido: **${labelArquetipo(e3.arquetipo)}**
 ${direcaoArquetipo(e3.arquetipo)}
 
 Paleta: ${(e3.cores || []).join(', ') || '—'}
-Tom de voz: ${e3.tomDeVoz || '—'}
 Referências que o cliente gosta:
 ${(e3.referencias || []).length
     ? e3.referencias.map((r) => `- ${r.url} — motivo: ${r.motivo || 'não detalhado'}`).join('\n')
@@ -136,7 +142,8 @@ ${e5 || '—'}
 - Site estático (sem painel de edição pro cliente), deploy Vercel
 - Todas as páginas listadas acima implementadas com o conteúdo descrito
 - Direção visual seguida — não usar defaults genéricos de IA
-- Responsivo (mobile e desktop)
+- Nível de acabamento "impecável e impactante" conforme seção acima (imagens tratadas, camadas, movimento) — não uma versão simplificada
+- **Responsivo em mobile é obrigatório, não detalhe final**: testar e ajustar layout, tipografia e toques em telas pequenas antes de considerar concluído
 `
 }
 

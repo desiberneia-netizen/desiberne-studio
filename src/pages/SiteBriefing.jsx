@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 import { useAuth } from '../lib/AuthContext'
 import { gerarTodosDocumentosSite } from '../lib/siteBriefingDocs'
-import { ARQUETIPOS_SITE } from '../lib/catalogos'
+import { ARQUETIPOS_SITE, SECOES_SITE_CATALOGO } from '../lib/catalogos'
 
 const STEP_TITLES = ['Dados do negócio', 'Mídia', 'Referências e estilo', 'Estrutura de páginas', 'Requisitos especiais', 'Revisão final']
 
@@ -11,7 +11,7 @@ function emptyBriefing() {
   return {
     etapa1_negocio: { segmento: '', endereco: '', telefone: '', horario: '', descricao: '', diferenciais: '' },
     etapa2_midia: { logo: null, fotos: [], redesSociais: [] },
-    etapa3_referencias: { arquetipo: '', referencias: [], cores: [], tomDeVoz: '' },
+    etapa3_referencias: { arquetipo: '', referencias: [], cores: [] },
     etapa4_estrutura: { paginas: [] },
     etapa5_requisitos_especiais: '',
   }
@@ -38,6 +38,9 @@ export default function SiteBriefing() {
   const [textoColado, setTextoColado] = useState('')
   const [extraindo, setExtraindo] = useState(false)
   const [erroExtracao, setErroExtracao] = useState('')
+  const [analisandoLogo, setAnalisandoLogo] = useState(false)
+  const [sugerindoPaginas, setSugerindoPaginas] = useState(false)
+  const [erroPaginas, setErroPaginas] = useState('')
 
   const [novaRede, setNovaRede] = useState('')
   const [novaRefUrl, setNovaRefUrl] = useState('')
@@ -209,11 +212,74 @@ export default function SiteBriefing() {
     }
   }
 
+  async function handleDetectarPaletaLogo() {
+    if (!data.etapa2_midia.logo?.url) return
+    setAnalisandoLogo(true)
+    setError('')
+    try {
+      const { data: sessionData } = await sb.auth.getSession()
+      const resp = await fetch('/api/analisar-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({ logoUrl: data.etapa2_midia.logo.url }),
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao analisar o logo')
+      const cores = result.cores || []
+      if (cores.length === 0) throw new Error('Não consegui identificar cores nesse logo.')
+      updateStep('etapa3_referencias', { cores: [...new Set([...data.etapa3_referencias.cores, ...cores])] })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAnalisandoLogo(false)
+    }
+  }
+
+  async function handleSugerirPaginas() {
+    setSugerindoPaginas(true)
+    setErroPaginas('')
+    try {
+      const { data: sessionData } = await sb.auth.getSession()
+      const arquetipoLabel = ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.label
+      const resp = await fetch('/api/sugerir-paginas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({
+          segmento: data.etapa1_negocio.segmento,
+          descricao: data.etapa1_negocio.descricao,
+          arquetipoLabel,
+          secoesEscolhidas: data.etapa4_estrutura.paginas.map((p) => p.nome),
+        }),
+      })
+      const result = await resp.json()
+      if (!resp.ok) throw new Error(result.error || 'Erro ao sugerir páginas')
+      const sugeridas = result.paginas || []
+      if (sugeridas.length === 0) throw new Error('Nenhuma sugestão veio — tenta preencher segmento/descrição primeiro.')
+      const nomesExistentes = new Set(data.etapa4_estrutura.paginas.map((p) => p.nome.toLowerCase()))
+      const novas = sugeridas.filter((p) => !nomesExistentes.has((p.nome || '').toLowerCase()))
+      updateStep('etapa4_estrutura', { paginas: [...data.etapa4_estrutura.paginas, ...novas] })
+    } catch (err) {
+      setErroPaginas(err.message)
+    } finally {
+      setSugerindoPaginas(false)
+    }
+  }
+
+  function toggleSecaoCatalogo(secao) {
+    const jaTem = data.etapa4_estrutura.paginas.some((p) => p.nome === secao.nome)
+    if (jaTem) {
+      updateStep('etapa4_estrutura', { paginas: data.etapa4_estrutura.paginas.filter((p) => p.nome !== secao.nome) })
+    } else {
+      updateStep('etapa4_estrutura', { paginas: [...data.etapa4_estrutura.paginas, { nome: secao.nome, conteudo: secao.conteudo }] })
+    }
+  }
+
   const canGoNext = useMemo(() => {
-    if (step === 0) return data.etapa1_negocio.segmento.trim().length > 0
-    if (step === 2) return data.etapa3_referencias.arquetipo.trim().length > 0
+    if (step === 0) return data.etapa1_negocio.segmento.trim().length > 0 && data.etapa3_referencias.arquetipo.trim().length > 0
     return true
   }, [step, data])
+
+  const podeGerarRapida = data.etapa1_negocio.segmento.trim().length > 0 && data.etapa3_referencias.arquetipo.trim().length > 0
 
   async function handleConfirm() {
     setConfirming(true)
@@ -366,6 +432,29 @@ export default function SiteBriefing() {
             <div className="callout" style={{ marginTop: 4 }}>
               Dados copiados do Google Maps / site atual do cliente — pesquisa manual, nunca scraping automatizado.
             </div>
+
+            <div className="section-divider">Arquétipo de estilo</div>
+            <div className="form-row">
+              <label>Direção visual *</label>
+              <select value={data.etapa3_referencias.arquetipo} onChange={(e) => updateStep('etapa3_referencias', { arquetipo: e.target.value })}>
+                <option value="" disabled>Selecione...</option>
+                {ARQUETIPOS_SITE.map((a) => (
+                  <option key={a.id} value={a.id}>{a.label}</option>
+                ))}
+              </select>
+              {data.etapa3_referencias.arquetipo && (
+                <span className="form-hint">{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.direcao}</span>
+              )}
+            </div>
+
+            {podeGerarRapida && (
+              <div className="banner-hint" style={{ marginTop: 16, flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                <span><b style={{ color: 'var(--text)' }}>Já dá pra gerar uma prévia agora</b> — mídia, referências e estrutura de páginas detalhada ficam pra depois, se fechar negócio.</span>
+                <button type="button" className="btn-primary" disabled={confirming} onClick={handleConfirm}>
+                  {confirming ? 'Gerando...' : '⚡ Gerar prévia rápida agora'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -374,10 +463,15 @@ export default function SiteBriefing() {
             <div className="form-row">
               <label>Logo</label>
               {data.etapa2_midia.logo ? (
-                <div className="fluxo-item">
-                  <img src={data.etapa2_midia.logo.url} alt="Logo" style={{ height: 32, width: 'auto', borderRadius: 4 }} />
-                  <span className="fluxo-nome">{data.etapa2_midia.logo.nome}</span>
-                  <button type="button" onClick={() => updateStep('etapa2_midia', { logo: null })}>×</button>
+                <div>
+                  <div className="fluxo-item">
+                    <img src={data.etapa2_midia.logo.url} alt="Logo" style={{ height: 32, width: 'auto', borderRadius: 4 }} />
+                    <span className="fluxo-nome">{data.etapa2_midia.logo.nome}</span>
+                    <button type="button" onClick={() => updateStep('etapa2_midia', { logo: null })}>×</button>
+                  </div>
+                  <button type="button" className="btn-ghost" style={{ marginTop: 8 }} onClick={handleDetectarPaletaLogo} disabled={analisandoLogo}>
+                    {analisandoLogo ? 'Analisando...' : '✨ Detectar paleta do logo'}
+                  </button>
                 </div>
               ) : (
                 <input type="file" accept="image/*" onChange={handleUploadLogo} disabled={uploading} />
@@ -424,19 +518,6 @@ export default function SiteBriefing() {
 
         {step === 2 && (
           <div>
-            <div className="form-row">
-              <label>Arquétipo de estilo *</label>
-              <select value={data.etapa3_referencias.arquetipo} onChange={(e) => updateStep('etapa3_referencias', { arquetipo: e.target.value })}>
-                <option value="" disabled>Selecione a direção visual...</option>
-                {ARQUETIPOS_SITE.map((a) => (
-                  <option key={a.id} value={a.id}>{a.label}</option>
-                ))}
-              </select>
-              {data.etapa3_referencias.arquetipo && (
-                <span className="form-hint">{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.direcao}</span>
-              )}
-            </div>
-            <div className="section-divider">Referências</div>
             <p className="wizard-hint">Sites de referência — o que especificamente o cliente gosta em cada um, não só o link.</p>
             <div className="fluxo-list">
               {data.etapa3_referencias.referencias.map((r, i) => (
@@ -471,7 +552,8 @@ export default function SiteBriefing() {
             >
               + Adicionar referência
             </button>
-            <div className="section-divider">Paleta e tom de voz</div>
+            <div className="section-divider">Paleta de cores</div>
+            <p className="wizard-hint">Preenchida automático se você detectou a paleta do logo na etapa Mídia — ajuste ou adicione manualmente aqui.</p>
             <div className="fluxo-list">
               {data.etapa3_referencias.cores.map((c, i) => (
                 <div key={i} className="fluxo-item">
@@ -494,22 +576,44 @@ export default function SiteBriefing() {
                 + Adicionar
               </button>
             </div>
-            <div className="form-row" style={{ marginTop: 12 }}>
-              <label>Tom de voz</label>
-              <input placeholder="Ex: formal, descontraído, técnico..." value={data.etapa3_referencias.tomDeVoz} onChange={(e) => updateStep('etapa3_referencias', { tomDeVoz: e.target.value })} />
-            </div>
           </div>
         )}
 
         {step === 3 && (
           <div>
-            <p className="wizard-hint">Páginas que o site vai ter e o que cada uma precisa conter.</p>
+            <p className="wizard-hint">Marque as seções comuns que fazem sentido, ajuste o texto se quiser, ou adicione uma personalizada embaixo.</p>
+            <div className="checklist-grid">
+              {SECOES_SITE_CATALOGO.map((secao) => (
+                <label key={secao.nome} className="checklist-item">
+                  <input
+                    type="checkbox"
+                    checked={data.etapa4_estrutura.paginas.some((p) => p.nome === secao.nome)}
+                    onChange={() => toggleSecaoCatalogo(secao)}
+                  />
+                  {secao.nome}
+                </label>
+              ))}
+            </div>
+            <button type="button" className="btn-ghost" style={{ margin: '12px 0' }} onClick={handleSugerirPaginas} disabled={sugerindoPaginas}>
+              {sugerindoPaginas ? 'Sugerindo...' : '✨ Sugerir mais seções com IA'}
+            </button>
+            {erroPaginas && <div className="banner-error">{erroPaginas}</div>}
+
+            <div className="section-divider">Selecionadas</div>
             <div className="fluxo-list">
               {data.etapa4_estrutura.paginas.map((p, i) => (
                 <div key={i} className="perfil-item">
                   <div>
                     <strong>{p.nome}</strong>
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{p.conteudo}</span>
+                    <input
+                      style={{ marginTop: 4 }}
+                      value={p.conteudo}
+                      onChange={(e) => {
+                        const paginas = [...data.etapa4_estrutura.paginas]
+                        paginas[i] = { ...paginas[i], conteudo: e.target.value }
+                        updateStep('etapa4_estrutura', { paginas })
+                      }}
+                    />
                   </div>
                   <button type="button" onClick={() => updateStep('etapa4_estrutura', { paginas: data.etapa4_estrutura.paginas.filter((_, idx) => idx !== i) })}>×</button>
                 </div>
@@ -517,8 +621,8 @@ export default function SiteBriefing() {
             </div>
             <div className="form-row-split">
               <div className="form-row">
-                <label>Nome da página</label>
-                <input placeholder="Ex: Home, Sobre, Serviços..." value={novaPaginaNome} onChange={(e) => setNovaPaginaNome(e.target.value)} />
+                <label>Nome da seção personalizada</label>
+                <input placeholder="Ex: Certificações" value={novaPaginaNome} onChange={(e) => setNovaPaginaNome(e.target.value)} />
               </div>
               <div className="form-row">
                 <label>O que precisa ter</label>
@@ -535,7 +639,7 @@ export default function SiteBriefing() {
                 setNovaPaginaConteudo('')
               }}
             >
-              + Adicionar página
+              + Adicionar seção personalizada
             </button>
           </div>
         )}
@@ -552,16 +656,17 @@ export default function SiteBriefing() {
         {isReview && (
           <div className="review">
             <div className="review-section">
-              <div className="review-section-header"><h3>Negócio</h3><button type="button" className="btn-ghost" onClick={() => setStep(0)}>Editar</button></div>
+              <div className="review-section-header"><h3>Negócio e estilo</h3><button type="button" className="btn-ghost" onClick={() => setStep(0)}>Editar</button></div>
               <p>{data.etapa1_negocio.segmento || '—'} — {data.etapa1_negocio.descricao || '—'}</p>
+              <p>{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.label || 'sem arquétipo'}</p>
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Mídia</h3><button type="button" className="btn-ghost" onClick={() => setStep(1)}>Editar</button></div>
               <p>{data.etapa2_midia.logo ? 'logo enviado' : 'sem logo'} · {data.etapa2_midia.fotos.length} foto(s) · {data.etapa2_midia.redesSociais.join(', ') || 'sem redes sociais'}</p>
             </div>
             <div className="review-section">
-              <div className="review-section-header"><h3>Referências e estilo</h3><button type="button" className="btn-ghost" onClick={() => setStep(2)}>Editar</button></div>
-              <p>{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.label || 'sem arquétipo'} · {data.etapa3_referencias.cores.join(', ') || 'sem paleta'} · tom: {data.etapa3_referencias.tomDeVoz || '—'}</p>
+              <div className="review-section-header"><h3>Referências e paleta</h3><button type="button" className="btn-ghost" onClick={() => setStep(2)}>Editar</button></div>
+              <p>{data.etapa3_referencias.cores.join(', ') || 'sem paleta'}</p>
             </div>
             <div className="review-section">
               <div className="review-section-header"><h3>Estrutura de páginas</h3><button type="button" className="btn-ghost" onClick={() => setStep(3)}>Editar</button></div>

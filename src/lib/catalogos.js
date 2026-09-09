@@ -31,6 +31,21 @@ export const ARQUETIPOS_SITE = [
   },
 ]
 
+export const SECOES_SITE_CATALOGO = [
+  { nome: 'Home / Hero', conteudo: 'Chamada principal, proposta de valor em uma frase, CTA de contato' },
+  { nome: 'Sobre', conteudo: 'História, missão, o que diferencia o negócio' },
+  { nome: 'Serviços', conteudo: 'Lista do que é oferecido, com descrição curta de cada' },
+  { nome: 'Portfólio / Projetos', conteudo: 'Galeria de trabalhos ou casos já entregues' },
+  { nome: 'Depoimentos', conteudo: 'Avaliações ou frases de clientes reais' },
+  { nome: 'Equipe', conteudo: 'Quem faz — fotos e cargos das pessoas principais' },
+  { nome: 'Diferenciais', conteudo: 'Por que escolher esse negócio — pontos fortes em destaque' },
+  { nome: 'Preços / Planos', conteudo: 'Tabela ou faixa de valores dos serviços/produtos' },
+  { nome: 'FAQ', conteudo: 'Perguntas frequentes que tiram objeção de compra' },
+  { nome: 'Localização', conteudo: 'Endereço, mapa incorporado, como chegar' },
+  { nome: 'Contato', conteudo: 'Formulário, telefone, WhatsApp, e-mail' },
+  { nome: 'Blog / Novidades', conteudo: 'Espaço pra conteúdo/atualizações (se o negócio publica)' },
+]
+
 export const FUNCIONALIDADES_CATALOGO = [
   'Dashboard', 'Agenda', 'Calendário', 'Clientes', 'Leads', 'Funil', 'Financeiro',
   'Estoque', 'Produtos', 'Ordens de Serviço', 'Contratos', 'Tarefas', 'Equipe',
