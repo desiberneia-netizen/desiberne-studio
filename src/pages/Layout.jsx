@@ -53,6 +53,9 @@ export default function Layout() {
           <NavLink to="/componentes" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
             Componentes
           </NavLink>
+          <NavLink to="/referencias" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
+            Referências
+          </NavLink>
           {isAdmin && (
             <NavLink to="/usuarios" className={({ isActive }) => 'studio-nav-item' + (isActive ? ' active' : '')}>
               Usuários
