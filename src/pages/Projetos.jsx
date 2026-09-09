@@ -240,13 +240,14 @@ export default function Projetos() {
               </div>
               <div className="form-row-split">
                 <div className="form-row">
-                  <label>Responsável</label>
+                  <label>Responsável (equipe Desiberne)</label>
                   <select value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })}>
                     <option value="">Sem responsável definido</option>
                     {usuarios.map((u) => (
                       <option key={u.id} value={u.nome || u.email}>{u.nome || u.email}</option>
                     ))}
                   </select>
+                  <span className="form-hint">Quem da nossa equipe toca esse projeto — não é o contato do cliente.</span>
                 </div>
                 <div className="form-row">
                   <label>Prazo</label>

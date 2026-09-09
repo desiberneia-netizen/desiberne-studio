@@ -279,8 +279,6 @@ export default function SiteBriefing() {
     return true
   }, [step, data])
 
-  const podeGerarRapida = data.etapa1_negocio.segmento.trim().length > 0 && data.etapa3_referencias.arquetipo.trim().length > 0
-
   async function handleConfirm() {
     setConfirming(true)
     setError('')
@@ -446,15 +444,6 @@ export default function SiteBriefing() {
                 <span className="form-hint">{ARQUETIPOS_SITE.find((a) => a.id === data.etapa3_referencias.arquetipo)?.direcao}</span>
               )}
             </div>
-
-            {podeGerarRapida && (
-              <div className="banner-hint" style={{ marginTop: 16, flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <span><b style={{ color: 'var(--text)' }}>Já dá pra gerar uma prévia agora</b> — mídia, referências e estrutura de páginas detalhada ficam pra depois, se fechar negócio.</span>
-                <button type="button" className="btn-primary" disabled={confirming} onClick={handleConfirm}>
-                  {confirming ? 'Gerando...' : '⚡ Gerar prévia rápida agora'}
-                </button>
-              </div>
-            )}
           </div>
         )}
 

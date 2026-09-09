@@ -171,8 +171,9 @@ export default function Clientes() {
               </div>
               <div className="form-row-split">
                 <div className="form-row">
-                  <label>Responsável</label>
-                  <input value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
+                  <label>Contato no cliente</label>
+                  <input placeholder="Nome de quem responde pelo cliente" value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} />
+                  <span className="form-hint">Pessoa do lado do cliente — quem a Desiberne fala diretamente, não é ninguém da equipe.</span>
                 </div>
                 <div className="form-row">
                   <label>CNPJ</label>
