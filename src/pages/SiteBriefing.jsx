@@ -57,14 +57,44 @@ export default function SiteBriefing() {
       }
       setProjeto(proj)
       setCliente(proj.sh_clientes)
+
+      // 1) rascunho local nao confirmado ainda (maior prioridade)
       const draft = localStorage.getItem(draftKey(id))
       if (draft) {
         try {
           setData({ ...emptyBriefing(), ...JSON.parse(draft) })
+          setLoading(false)
+          return
         } catch {
-          // ignora rascunho corrompido
+          // rascunho corrompido, ignora e segue pras proximas fontes
         }
       }
+
+      // 2) ultimo briefing ja confirmado no banco (fonte de verdade, sobrevive
+      // a troca de navegador/dispositivo e ao fato do draft local ser apagado
+      // assim que confirma pela 1a vez)
+      const { data: ultimoConfirmado } = await sb
+        .from('sh_briefing_sites')
+        .select('*')
+        .eq('projeto_id', id)
+        .order('versao', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (ultimoConfirmado) {
+        const preenchido = {
+          etapa1_negocio: ultimoConfirmado.etapa1_negocio,
+          etapa2_midia: ultimoConfirmado.etapa2_midia,
+          etapa3_referencias: ultimoConfirmado.etapa3_referencias,
+          etapa4_estrutura: ultimoConfirmado.etapa4_estrutura,
+          etapa5_requisitos_especiais: ultimoConfirmado.etapa5_requisitos_especiais,
+        }
+        setData({ ...emptyBriefing(), ...preenchido })
+        localStorage.setItem(draftKey(id), JSON.stringify({ ...emptyBriefing(), ...preenchido }))
+        setLoading(false)
+        return
+      }
+
+      // 3) sem draft e sem briefing confirmado ainda: comeca do zero (emptyBriefing ja no state)
       setLoading(false)
     }
     load()
