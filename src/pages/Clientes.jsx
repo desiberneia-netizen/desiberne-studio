@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { sb } from '../lib/supabaseClient'
 import { useAuth } from '../lib/AuthContext'
 
@@ -17,12 +18,14 @@ const emptyForm = {
 
 export default function Clientes() {
   const { isAdminOuGestor } = useAuth()
+  const navigate = useNavigate()
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [gerandoProjeto, setGerandoProjeto] = useState(false)
 
   async function loadClientes() {
     setLoading(true)
@@ -62,6 +65,7 @@ export default function Clientes() {
     e.preventDefault()
     if (!form.nome.trim()) return
     setSaving(true)
+    const eraNovo = !form.id
     const payload = {
       nome: form.nome.trim(),
       empresa: form.empresa.trim(),
@@ -73,9 +77,9 @@ export default function Clientes() {
         ? [{ nome: form.contatoNome, telefone: form.contatoTelefone, email: form.contatoEmail }]
         : [],
     }
-    const { error } = form.id
-      ? await sb.from('sh_clientes').update(payload).eq('id', form.id)
-      : await sb.from('sh_clientes').insert(payload)
+    const { data, error } = form.id
+      ? await sb.from('sh_clientes').update(payload).eq('id', form.id).select().single()
+      : await sb.from('sh_clientes').insert(payload).select().single()
     setSaving(false)
     if (error) {
       setError(error.message)
@@ -83,6 +87,29 @@ export default function Clientes() {
     }
     setModalOpen(false)
     loadClientes()
+    // Cliente recém-criado: oferece já gerar o projeto e ir direto pra tela dele.
+    if (eraNovo && data?.id) {
+      if (confirm('Cliente cadastrado! Gerar o projeto agora e já abrir a tela dele?')) {
+        await gerarProjetoPara(data)
+      }
+    }
+  }
+
+  // Cria o projeto pro cliente (mesma tabela/fluxo do "+ Novo Projeto" em Projetos) e
+  // navega direto pra tela de detalhe — entra na lista de Projetos automaticamente.
+  async function gerarProjetoPara(cliente) {
+    setGerandoProjeto(true)
+    const { data, error } = await sb
+      .from('sh_projetos')
+      .insert({ cliente_id: cliente.id, nome: `Projeto — ${cliente.nome}` })
+      .select()
+      .single()
+    setGerandoProjeto(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    navigate(`/projetos/${data.id}`)
   }
 
   async function handleDelete(id) {
@@ -203,6 +230,16 @@ export default function Clientes() {
                 {form.id && isAdminOuGestor && (
                   <button type="button" className="btn-danger" onClick={() => { handleDelete(form.id); setModalOpen(false) }}>
                     Excluir
+                  </button>
+                )}
+                {form.id && isAdminOuGestor && (
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    disabled={gerandoProjeto}
+                    onClick={() => gerarProjetoPara({ id: form.id, nome: form.nome })}
+                  >
+                    {gerandoProjeto ? 'Gerando...' : 'Gerar Projeto'}
                   </button>
                 )}
                 <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>{isAdminOuGestor ? 'Cancelar' : 'Fechar'}</button>
