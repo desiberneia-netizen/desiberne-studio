@@ -26,6 +26,7 @@ export default function Clientes() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [gerandoProjeto, setGerandoProjeto] = useState(false)
+  const [avisoPosSalvar, setAvisoPosSalvar] = useState('')
 
   async function loadClientes() {
     setLoading(true)
@@ -41,10 +42,12 @@ export default function Clientes() {
 
   function openNew() {
     setForm(emptyForm)
+    setAvisoPosSalvar('')
     setModalOpen(true)
   }
 
   function openEdit(c) {
+    setAvisoPosSalvar('')
     const contato = (c.contatos || [])[0] || {}
     setForm({
       id: c.id,
@@ -85,23 +88,24 @@ export default function Clientes() {
       setError(error.message)
       return
     }
-    setModalOpen(false)
     loadClientes()
-    // Cliente recém-criado: oferece já gerar o projeto e ir direto pra tela dele.
+    // Cliente recém-criado: mantém o modal aberto (agora em modo edição) pra já poder
+    // escolher o tipo do projeto abaixo, em vez de fechar e perguntar sim/não sem opção de tipo.
     if (eraNovo && data?.id) {
-      if (confirm('Cliente cadastrado! Gerar o projeto agora e já abrir a tela dele?')) {
-        await gerarProjetoPara(data)
-      }
+      setForm({ ...form, id: data.id })
+      showToastLocal('Cliente cadastrado! Escolha abaixo o tipo de projeto, se quiser gerar agora.')
+    } else {
+      setModalOpen(false)
     }
   }
 
   // Cria o projeto pro cliente (mesma tabela/fluxo do "+ Novo Projeto" em Projetos) e
   // navega direto pra tela de detalhe — entra na lista de Projetos automaticamente.
-  async function gerarProjetoPara(cliente) {
+  async function gerarProjetoPara(cliente, tipo_projeto) {
     setGerandoProjeto(true)
     const { data, error } = await sb
       .from('sh_projetos')
-      .insert({ cliente_id: cliente.id, nome: `Projeto — ${cliente.nome}` })
+      .insert({ cliente_id: cliente.id, nome: `Projeto — ${cliente.nome}`, tipo_projeto })
       .select()
       .single()
     setGerandoProjeto(false)
@@ -110,6 +114,14 @@ export default function Clientes() {
       return
     }
     navigate(`/projetos/${data.id}`)
+  }
+
+  // Aviso simples sem dependência de um sistema de toast do projeto — só pra chamar
+  // atenção pro passo seguinte (escolher o tipo) sem travar a tela como o confirm() fazia.
+  function showToastLocal(msg) {
+    setError('')
+    setAvisoPosSalvar(msg)
+    setTimeout(() => setAvisoPosSalvar(''), 6000)
   }
 
   async function handleDelete(id) {
@@ -181,6 +193,7 @@ export default function Clientes() {
               <h2>{form.id ? 'Editar Cliente' : 'Novo Cliente'}</h2>
               <button className="modal-close" onClick={() => setModalOpen(false)}>×</button>
             </div>
+            {avisoPosSalvar && <div className="banner-error" style={{ background: 'rgba(124,58,237,0.12)', color: '#c084fc' }}>{avisoPosSalvar}</div>}
             <form onSubmit={handleSave}>
               <div className="form-row">
                 <label>Nome *</label>
@@ -233,14 +246,24 @@ export default function Clientes() {
                   </button>
                 )}
                 {form.id && isAdminOuGestor && (
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    disabled={gerandoProjeto}
-                    onClick={() => gerarProjetoPara({ id: form.id, nome: form.nome })}
-                  >
-                    {gerandoProjeto ? 'Gerando...' : 'Gerar Projeto'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      disabled={gerandoProjeto}
+                      onClick={() => gerarProjetoPara({ id: form.id, nome: form.nome }, 'site')}
+                    >
+                      {gerandoProjeto ? 'Gerando...' : 'Gerar Site'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      disabled={gerandoProjeto}
+                      onClick={() => gerarProjetoPara({ id: form.id, nome: form.nome }, 'crm')}
+                    >
+                      {gerandoProjeto ? 'Gerando...' : 'Gerar CRM'}
+                    </button>
+                  </>
                 )}
                 <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>{isAdminOuGestor ? 'Cancelar' : 'Fechar'}</button>
                 {isAdminOuGestor && (

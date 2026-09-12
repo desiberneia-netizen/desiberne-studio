@@ -14,6 +14,11 @@ const STATUS_LABEL = {
 
 const TIPO_LABEL = { crm: 'CRM / Sistema', site: 'Site / Landing Page' }
 
+// Fallback pra exibir nome em vez de e-mail cru quando sh_usuarios.nome ainda não foi
+// preenchido no banco pra essa conta.
+const NOMES_EQUIPE = { 'joao.ramos@desiberneia.com.br': 'João Ramos', 'tiago@desiberneia.com.br': 'Tiago Barbosa', 'tiago.barbosa@desiberneia.com.br': 'Tiago Barbosa' }
+function nomeExibicao(u) { return u.nome || NOMES_EQUIPE[(u.email || '').toLowerCase()] || u.email }
+
 const emptyForm = {
   id: null,
   cliente_id: '',
@@ -38,6 +43,7 @@ export default function Projetos() {
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [clienteInput, setClienteInput] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -64,11 +70,13 @@ export default function Projetos() {
   }, [])
 
   function openNew() {
-    setForm({ ...emptyForm, cliente_id: clientes[0]?.id || '' })
+    setForm({ ...emptyForm, cliente_id: '' })
+    setClienteInput('')
     setModalOpen(true)
   }
 
   function openEdit(p) {
+    setClienteInput(clientes.find((c) => c.id === p.cliente_id)?.nome || '')
     setForm({
       id: p.id,
       cliente_id: p.cliente_id || '',
@@ -207,12 +215,23 @@ export default function Projetos() {
             <form onSubmit={handleSave}>
               <div className="form-row">
                 <label>Cliente *</label>
-                <select value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })} required>
-                  <option value="" disabled>Selecione...</option>
+                <input
+                  list="clientes-datalist"
+                  placeholder="Digite pra filtrar pelo nome..."
+                  value={clienteInput}
+                  onChange={(e) => {
+                    const texto = e.target.value
+                    setClienteInput(texto)
+                    const match = clientes.find((c) => c.nome === texto)
+                    setForm({ ...form, cliente_id: match ? match.id : '' })
+                  }}
+                  required
+                />
+                <datalist id="clientes-datalist">
                   {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
+                    <option key={c.id} value={c.nome} />
                   ))}
-                </select>
+                </datalist>
               </div>
               {!form.id && (
                 <div className="form-row">
@@ -244,7 +263,7 @@ export default function Projetos() {
                   <select value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })}>
                     <option value="">Sem responsável definido</option>
                     {usuarios.map((u) => (
-                      <option key={u.id} value={u.nome || u.email}>{u.nome || u.email}</option>
+                      <option key={u.id} value={nomeExibicao(u)}>{nomeExibicao(u)}</option>
                     ))}
                   </select>
                   <span className="form-hint">Quem da nossa equipe toca esse projeto — não é o contato do cliente.</span>
