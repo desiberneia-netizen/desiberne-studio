@@ -651,11 +651,17 @@ td code {
 }
 .modal-footer {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+.modal-footer .btn-primary,
+.modal-footer .btn-ghost,
+.modal-footer .btn-danger {
+  white-space: nowrap;
 }
 
 /* ===== WIZARD ===== */
